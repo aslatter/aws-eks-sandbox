@@ -26,3 +26,8 @@ The variable "node_az_count" determines how many AZs we will
 provision public/private subnet-pairs into.
 
 We will provision one NAT gateway per private subnet.
+
+# TODO
+
+- there are likely required-tags on nodes, subnets, sgs etc
+- IRSA
