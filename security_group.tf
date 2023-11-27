@@ -29,7 +29,7 @@ resource "aws_security_group_rule" "eks_cluster" {
 
 resource "aws_security_group" "eks_nodes" {
   description = "Custom EKS node security group"
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
 
   tags = {
     Name : "eks-nodes"

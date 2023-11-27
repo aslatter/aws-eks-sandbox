@@ -48,6 +48,9 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name : "subnet-public-${local.azs[count.index]}"
+
+    "kubernetes.io/cluster/${local.cluster_name}" : "shared"
+    "kubernetes.io/role/elb" : 1
   }
 }
 
@@ -82,6 +85,9 @@ resource "aws_subnet" "private" {
 
   tags = {
     Name : "subnet-private-${local.azs[count.index]}"
+
+    "kubernetes.io/cluster/${local.cluster_name}" : "shared"
+    "kubernetes.io/role/internal-elb" : 1
   }
 }
 

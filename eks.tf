@@ -1,20 +1,26 @@
 
 locals {
-  cluster_name = "${var.eks_cluster_name}-${local.entropy}"
+  cluster_name        = "${var.eks_cluster_name}-${local.entropy}"
+  public_access_cidrs = concat(var.public_access_cidrs, [for ip in aws_eip.nat : "${ip.public_ip}/32"])
 }
 
 resource "aws_eks_cluster" "main" {
+  // count    = 0
   name     = local.cluster_name
   role_arn = aws_iam_role.eks.arn
   version  = var.eks_k8s_version
   // TODO - enabled cluster log types?
 
   vpc_config {
-    security_group_ids = [aws_security_group.eks_cluster.id]
+    # security_group_ids = [aws_security_group.eks_cluster.id]
     // do I need to put my node subnets in this list?
     subnet_ids = aws_subnet.intra[*].id
     // TODO private endpoint for worker-node access?
-    public_access_cidrs = var.public_access_cidrs
+    public_access_cidrs = local.public_access_cidrs
+    // because we're setting public_access_cidrs we either
+    // need to enable private access, or add the NAT gateway outbound IPs
+    // to the public-access-cidrs list.
+    endpoint_private_access = true
   }
 
   // TODO - encryption_config

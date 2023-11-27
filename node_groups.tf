@@ -17,6 +17,7 @@ locals {
     }
     two : {
       name : "node-group-2"
+      enabled : false
 
       instance_types : ["t3a.small"]
 
@@ -27,16 +28,16 @@ locals {
   }
 }
 
-resource "aws_launch_template" "node" {
-  network_interfaces {
-    security_groups = [aws_security_group.eks_nodes.id]
-  }
-}
+# resource "aws_launch_template" "node" {
+#   network_interfaces {
+#     security_groups = [aws_security_group.eks_nodes.id]
+#   }
+# }
 
 // consider two node_group blocks for if we should
 // ignore desired-size?
 resource "aws_eks_node_group" "main" {
-  for_each = local.eks_node_groups
+  for_each = { for k, v in local.eks_node_groups : k => v if lookup(v, "enabled", true) }
 
   cluster_name  = local.cluster_name
   node_role_arn = aws_iam_role.node[each.key].arn
@@ -50,14 +51,16 @@ resource "aws_eks_node_group" "main" {
 
   node_group_name_prefix = "${each.value.name}-"
 
-  launch_template {
-    id = aws_launch_template.node.id
-    version = aws_launch_template.node.latest_version
-  }
+  # launch_template {
+  #   id = aws_launch_template.node.id
+  #   version = aws_launch_template.node.latest_version
+  # }
 
   ami_type = local.eks_node_group_defaults.ami_type
   // release version?
   // version?
+
+  instance_types = each.value.instance_types
 
   // capacity-type
   // disk-size
@@ -80,6 +83,8 @@ resource "aws_eks_node_group" "main" {
   tags = {
     Name : each.value.name
   }
+
+  depends_on = [aws_eks_cluster.main]
 }
 
 data "aws_iam_policy_document" "node_assume_role_policy" {
@@ -98,12 +103,12 @@ data "aws_iam_policy_document" "node_assume_role_policy" {
 // role per node-group?
 resource "aws_iam_role" "node" {
   for_each = local.eks_node_groups
- 
+
   name_prefix = "${each.value.name}-"
   // path
   description = "Node role for ${each.value.name}"
 
-  assume_role_policy    = data.aws_iam_policy_document.node_assume_role_policy.json
+  assume_role_policy = data.aws_iam_policy_document.node_assume_role_policy.json
   // permission boundary
   force_detach_policies = true
 
@@ -117,15 +122,15 @@ resource "aws_iam_role_policy_attachment" "node" {
   for_each = merge([
     for group_key, group in local.eks_node_groups : merge([
       for role in ["AmazonEKSWorkerNodePolicy", "AmazonEC2ContainerRegistryReadOnly"] :
-        {
-          "${group_key}-${role}": {
-            group : group_key
-            role : role
-          }
+      {
+        "${group_key}-${role}" : {
+          group : group_key
+          role : role
         }
+      }
     ]...)
   ]...)
-  
+
   policy_arn = "${local.iam_role_policy_prefix}/${each.value.role}"
   role       = aws_iam_role.node[each.value.group].name
 }
