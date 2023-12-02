@@ -1,9 +1,8 @@
 
 // https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html
 
-// TODO - check to see if this keeps the default "allow all" egress
-// rules.
-
+// SG we apply to EKS-managed control-plane NICs it installs
+// in our subnets.
 resource "aws_security_group" "eks_cluster" {
   vpc_id = aws_vpc.main.id
 
@@ -27,13 +26,13 @@ resource "aws_security_group_rule" "eks_cluster" {
   to_port                  = "443"
 }
 
+// SG we apply to k8s nodes themselves.
 resource "aws_security_group" "eks_nodes" {
   description = "Custom EKS node security group"
   vpc_id      = aws_vpc.main.id
 
   tags = {
     Name : "eks-nodes"
-    //"kubernetes.io/cluster/${cluster name}" = "owned"
   }
 
   lifecycle {
@@ -43,7 +42,7 @@ resource "aws_security_group" "eks_nodes" {
 
 resource "aws_security_group_rule" "eks_nodes" {
   // the commnity eks module is a lot more restictive in
-  // its 'nodes' security-group. here, we all all node->node
+  // its 'nodes' security-group. here, we allow all node->node
   // traffic.
   for_each = {
     "ingress_self" = {
@@ -69,6 +68,14 @@ resource "aws_security_group_rule" "eks_nodes" {
       from_port             = 10250
       to_port               = 10250
       source_security_group = "cluster"
+    },
+    "egress" = {
+      description = "allow egress"
+      type = "egress"
+      protocol = "-1"
+      to_port = 0
+      from_port = 0
+      cidr_blocks = ["0.0.0.0/0"]
     }
   }
 
@@ -80,6 +87,7 @@ resource "aws_security_group_rule" "eks_nodes" {
 
   description = lookup(each.value, "description", null)
   self        = lookup(each.value, "self", null)
+  cidr_blocks = lookup(each.value, "cidr_blocks", null)
   source_security_group_id = (try(each.value.source_security_group, null) == null
     ? null
     : each.value.source_security_group == "cluster" ? aws_security_group.eks_cluster.id

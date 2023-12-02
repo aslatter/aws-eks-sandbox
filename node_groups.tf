@@ -8,7 +8,7 @@ locals {
     one : {
       name : "node-group-1"
 
-      instance_types : ["t3a.small"]
+      instance_types : ["t3a.small", "t3.small"]
 
       min_size : 0
       max_size : 1
@@ -19,7 +19,7 @@ locals {
       name : "node-group-2"
       enabled : false
 
-      instance_types : ["t3a.small"]
+      instance_types : ["t3a.small", "t3.small"]
 
       min_size : 0
       max_size : 1
@@ -28,11 +28,12 @@ locals {
   }
 }
 
-# resource "aws_launch_template" "node" {
-#   network_interfaces {
-#     security_groups = [aws_security_group.eks_nodes.id]
-#   }
-# }
+resource "aws_launch_template" "node" {
+  // install SSM-agent
+  user_data = base64encode(file("${path.module}/init_node.sh"))
+
+  vpc_security_group_ids = [aws_security_group.eks_nodes.id]
+}
 
 // consider two node_group blocks for if we should
 // ignore desired-size?
@@ -51,14 +52,17 @@ resource "aws_eks_node_group" "main" {
 
   node_group_name_prefix = "${each.value.name}-"
 
-  # launch_template {
-  #   id = aws_launch_template.node.id
-  #   version = aws_launch_template.node.latest_version
-  # }
+  launch_template {
+    id      = aws_launch_template.node.id
+    version = aws_launch_template.node.latest_version
+  }
 
   ami_type = local.eks_node_group_defaults.ami_type
   // release version?
-  // version?
+
+  // the community module threads this through a
+  // time_sleep resource
+  version = aws_eks_cluster.main.version
 
   instance_types = each.value.instance_types
 
@@ -75,16 +79,19 @@ resource "aws_eks_node_group" "main" {
 
   lifecycle {
     create_before_destroy = true
-    ignore_changes = [
-      scaling_config[0].desired_size,
-    ]
+    # ignore_changes = [
+    #   scaling_config[0].desired_size,
+    # ]
   }
 
   tags = {
     Name : each.value.name
   }
 
-  depends_on = [aws_eks_cluster.main]
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_role_policy_attachment.node,
+  ]
 }
 
 data "aws_iam_policy_document" "node_assume_role_policy" {
@@ -121,7 +128,22 @@ resource "aws_iam_role" "node" {
 resource "aws_iam_role_policy_attachment" "node" {
   for_each = merge([
     for group_key, group in local.eks_node_groups : merge([
-      for role in ["AmazonEKSWorkerNodePolicy", "AmazonEC2ContainerRegistryReadOnly"] :
+      for role in [
+        // NOTE! these policies give us account-wide access
+        // to things! custom policies or permission boundaries
+        // count scope this down.
+
+        // required EKS policies
+        "AmazonEKSWorkerNodePolicy",
+        "AmazonEC2ContainerRegistryReadOnly",
+
+        // required CNI policy
+        "AmazonEKS_CNI_Policy",
+
+        // required for system management
+        "CloudWatchAgentServerPolicy",
+        "AmazonSSMManagedInstanceCore",
+      ] :
       {
         "${group_key}-${role}" : {
           group : group_key

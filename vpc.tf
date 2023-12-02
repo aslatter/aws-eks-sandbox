@@ -38,7 +38,8 @@ resource "aws_default_security_group" "default" {
 // as they are not stateful.
 
 // public subnet
-
+//
+// the public subet will hold any load-balencers for ingress.
 resource "aws_subnet" "public" {
   count = var.node_az_count
 
@@ -75,7 +76,14 @@ resource "aws_route" "public_internet_gateway" {
 }
 
 // private subnet
-
+//
+// the pirvate subnet will hold our k8s nodes.
+// direct internet access is not allowed, however we do
+// have a route to a NAT-gateway for internet egress.
+//
+// we have as many subnets as we wish to have AZs for
+// out k8s nodes. We also provision a separate NAT
+// gateway per AZ.
 resource "aws_subnet" "private" {
   count = var.node_az_count
 
@@ -108,7 +116,14 @@ resource "aws_route_table_association" "private" {
 }
 
 // intra subnet (private, with no egress)
-
+//
+// the intra subnet is similar to the private subnet,
+// except there is no internet egress route. We will
+// tell EKS to install its control-plan NICs onto these
+// subnets.
+//
+// We need as many subnets as we wish to have control-plane
+// availability-zones (minimum of two).
 resource "aws_subnet" "intra" {
   count = var.cluster_az_count
 
@@ -150,7 +165,7 @@ resource "aws_internet_gateway" "main" {
 // nat gateway
 
 resource "aws_eip" "nat" {
-  // creating one per AZ
+  // creating one per node-AZ
   count  = var.node_az_count
   domain = "vpc"
 
