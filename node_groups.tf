@@ -32,7 +32,14 @@ resource "aws_launch_template" "node" {
   // install SSM-agent
   user_data = base64encode(file("${path.module}/init_node.sh"))
 
+  // assign to custom sg
   vpc_security_group_ids = [aws_security_group.eks_nodes.id]
+
+  // require imdsv2, set hop-limit to 1
+  metadata_options {
+    http_tokens = "required"
+    http_put_response_hop_limit = 1
+  }
 }
 
 // consider two node_group blocks for if we should
@@ -77,6 +84,10 @@ resource "aws_eks_node_group" "main" {
 
   // update config
 
+  tags = {
+    Name : each.value.name
+  }
+
   lifecycle {
     create_before_destroy = true
     # ignore_changes = [
@@ -84,13 +95,10 @@ resource "aws_eks_node_group" "main" {
     # ]
   }
 
-  tags = {
-    Name : each.value.name
-  }
-
   depends_on = [
     aws_eks_cluster.main,
     aws_iam_role_policy_attachment.node,
+    kubernetes_annotations.cni_role,
   ]
 }
 
@@ -133,12 +141,13 @@ resource "aws_iam_role_policy_attachment" "node" {
         // to things! custom policies or permission boundaries
         // count scope this down.
 
+        // NOTE! these policies are accessible from the node
+        // IMDS endpoint, which is accessible from pods
+        // using host-networking.
+
         // required EKS policies
         "AmazonEKSWorkerNodePolicy",
         "AmazonEC2ContainerRegistryReadOnly",
-
-        // required CNI policy
-        "AmazonEKS_CNI_Policy",
 
         // required for system management
         "CloudWatchAgentServerPolicy",
