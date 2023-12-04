@@ -19,13 +19,13 @@ nodes: k8s
     terraform -chdir=nodes apply -var-file=../terraform.tfvars -compact-warnings
 
 clean-init: clean-eks
-    terraform -chdir=init destroy
+    terraform -chdir=init destroy -var-file=../terraform.tfvars -compact-warnings
 
 clean-eks: clean-k8s
-    terraform -chdir=k8s destroy
+    terraform -chdir=eks destroy -var-file=../terraform.tfvars -compact-warnings
 
 clean-k8s: clean-nodes
-    terraform -chdir=k8s destroy
+    terraform -chdir=k8s destroy -var-file=../terraform.tfvars -compact-warnings
 
 clean-nodes:
-    terraform -chdir=nodes destroy
+    terraform -chdir=nodes destroy -var-file=../terraform.tfvars -compact-warnings
