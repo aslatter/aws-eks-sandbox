@@ -1,7 +1,8 @@
 
 resource "random_string" "suffix" {
-  length  = 8
+  length  = 12
   special = false
+  upper   = false
 }
 
 output "entropy" {
