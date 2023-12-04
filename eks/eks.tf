@@ -1,6 +1,5 @@
 
 locals {
-  cluster_name        = "${var.eks_cluster_name}-${local.entropy}"
   public_access_cidrs = concat(var.public_access_cidrs)
 }
 
@@ -8,7 +7,12 @@ resource "aws_eks_cluster" "main" {
   name     = local.cluster_name
   role_arn = aws_iam_role.eks.arn
   version  = var.eks_k8s_version
+
   // TODO - enabled cluster log types?
+
+  kubernetes_network_config {
+    ip_family = var.ipv6_enable ? "ipv6" : null
+  }
 
   vpc_config {
     security_group_ids  = [aws_security_group.eks_cluster.id]
@@ -68,6 +72,7 @@ resource "aws_iam_role_policy_attachment" "eks" {
   for_each = {
     AmazonEKSClusterPolicy         = "${local.iam_role_policy_prefix}/AmazonEKSClusterPolicy",
     AmazonEKSVPCResourceController = "${local.iam_role_policy_prefix}/AmazonEKSVPCResourceController",
+    // TODO - create and add ipv6 role
   }
 
   policy_arn = each.value
@@ -87,3 +92,11 @@ resource "aws_iam_role_policy_attachment" "eks" {
 // if we want to re-build the aws-auth configmap, we will need to manaully add-in
 // the EC2 node-instance roles :-(
 
+output "eks" {
+  value = {
+    name = aws_eks_cluster.main.name
+    endpoint = aws_eks_cluster.main.endpoint
+    cluster_ca_certificate = aws_eks_cluster.main.certificate_authority[0].data
+    version = aws_eks_cluster.main.version
+  }
+}

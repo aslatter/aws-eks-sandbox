@@ -13,11 +13,10 @@ provider "aws" {
   region = var.region
   default_tags {
     tags = {
-      "group" = var.group
+      "group" = local.group_name
     }
   }
 }
-
 
 data "aws_partition" "current" {}
 
@@ -37,13 +36,22 @@ locals {
   azs = slice(random_shuffle.az.result, 0, max(var.cluster_az_count, var.node_az_count))
 }
 
-resource "random_string" "suffix" {
-  length  = 8
-  special = false
+output "azs" {
+  value = local.azs
+}
+
+data "terraform_remote_state" "init" {
+  backend = "local"
+ 
+  config = {
+    path = "../init/terraform.tfstate"
+  }
 }
 
 locals {
-  entropy = random_string.suffix.result
+  entropy = data.terraform_remote_state.init.outputs.entropy
+  cluster_name = data.terraform_remote_state.init.outputs.name
+  group_name = data.terraform_remote_state.init.outputs.name
 }
 
 // We play some tricks to get all provisioned
@@ -55,7 +63,7 @@ locals {
 // but that was running into issues.
 
 resource "aws_resourcegroups_group" "group" {
-  name = var.group
+  name = local.group_name
   resource_query {
     query = jsonencode({
       ResourceTypeFilters : [
@@ -64,7 +72,7 @@ resource "aws_resourcegroups_group" "group" {
       TagFilters : [
         {
           Key : "group",
-          Values : [var.group]
+          Values : [local.group_name]
         }
       ]
     })

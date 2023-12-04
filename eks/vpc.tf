@@ -7,9 +7,19 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
   enable_dns_hostnames = true
 
+  assign_generated_ipv6_cidr_block = var.ipv6_enable ? true : null
+
   tags = {
     Name = "vpc"
   }
+}
+
+data "aws_vpc" "main" {
+  id = aws_vpc.main.id
+}
+
+output "ipv6_cidr_block" {
+  value = var.ipv6_enable ? aws_vpc.main.ipv6_cidr_block : null
 }
 
 resource "aws_default_security_group" "default" {
@@ -27,6 +37,7 @@ resource "aws_default_security_group" "default" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = {
@@ -46,6 +57,13 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.main.id
   availability_zone = local.azs[count.index]
   cidr_block        = var.vpc_public_subnets[count.index]
+  ipv6_cidr_block = (
+    var.ipv6_enable
+    ? cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, var.vpc_ipv6_public_subnets[count.index])
+    : null
+  )
+
+  assign_ipv6_address_on_creation = var.ipv6_enable ? true : null
 
   tags = {
     Name : "subnet-public-${local.azs[count.index]}"
@@ -75,6 +93,14 @@ resource "aws_route" "public_internet_gateway" {
   // todo - community module includes a 5m timeout
 }
 
+resource "aws_route" "public_internet_gateway_ipv6" {
+  count = var.ipv6_enable ? 1 : 0
+
+  route_table_id         = aws_route_table.public.id
+  destination_ipv6_cidr_block = "::/0"
+  gateway_id             = aws_internet_gateway.main.id
+}
+
 // private subnet
 //
 // the pirvate subnet will hold our k8s nodes.
@@ -90,6 +116,13 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   availability_zone = local.azs[count.index]
   cidr_block        = var.vpc_private_subnets[count.index]
+  ipv6_cidr_block = (
+    var.ipv6_enable
+    ? cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, var.vpc_ipv6_private_subnets[count.index])
+    : null
+  )
+
+  assign_ipv6_address_on_creation = var.ipv6_enable ? true : null
 
   tags = {
     Name : "subnet-private-${local.azs[count.index]}"
@@ -130,6 +163,13 @@ resource "aws_subnet" "intra" {
   vpc_id            = aws_vpc.main.id
   availability_zone = local.azs[count.index]
   cidr_block        = var.vpc_intra_subnets[count.index]
+  ipv6_cidr_block = (
+    var.ipv6_enable
+    ? cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, var.vpc_ipv6_intra_subnets[count.index])
+    : null
+  )
+
+  assign_ipv6_address_on_creation = var.ipv6_enable ? true : null
 
   tags = {
     Name : "subnet-intra-${local.azs[count.index]}"
@@ -198,4 +238,20 @@ resource "aws_route" "private_nat_gateway" {
   nat_gateway_id         = aws_nat_gateway.main[count.index].id
 
   // again the community module use a 5m create-timeout here?
+}
+
+resource "aws_route" "private_internet_egress" {
+  count = var.ipv6_enable ? var.node_az_count : 0
+
+  route_table_id         = aws_route_table.private[count.index].id
+  destination_ipv6_cidr_block = "::/0"
+  egress_only_gateway_id = aws_egress_only_internet_gateway.main[0].id
+}
+
+// ipv6 stuff
+
+resource "aws_egress_only_internet_gateway" "main" {
+  count = var.ipv6_enable ? 1 : 0
+
+  vpc_id = aws_vpc.main.id
 }

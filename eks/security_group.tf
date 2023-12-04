@@ -71,11 +71,12 @@ resource "aws_security_group_rule" "eks_nodes" {
     },
     "egress" = {
       description = "allow egress"
-      type = "egress"
-      protocol = "-1"
-      to_port = 0
-      from_port = 0
+      type        = "egress"
+      protocol    = "-1"
+      to_port     = 0
+      from_port   = 0
       cidr_blocks = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
     }
   }
 
@@ -88,6 +89,8 @@ resource "aws_security_group_rule" "eks_nodes" {
   description = lookup(each.value, "description", null)
   self        = lookup(each.value, "self", null)
   cidr_blocks = lookup(each.value, "cidr_blocks", null)
+  ipv6_cidr_blocks = lookup(each.value, "ipv6_cidr_blocks", null)
+
   source_security_group_id = (try(each.value.source_security_group, null) == null
     ? null
     : each.value.source_security_group == "cluster" ? aws_security_group.eks_cluster.id
@@ -95,3 +98,10 @@ resource "aws_security_group_rule" "eks_nodes" {
   )
 }
 
+// TODO - move somewhere else?
+output "vpc" {
+  value = {
+    nodes_security_group_id : aws_security_group.eks_nodes.id
+    nodes_subnet_ids : aws_subnet.private[*].id
+  }
+}

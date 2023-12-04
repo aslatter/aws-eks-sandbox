@@ -33,13 +33,19 @@ resource "aws_launch_template" "node" {
   user_data = base64encode(file("${path.module}/init_node.sh"))
 
   // assign to custom sg
-  vpc_security_group_ids = [aws_security_group.eks_nodes.id]
+  vpc_security_group_ids = [local.nodes_security_group_id]
 
   // require imdsv2, set hop-limit to 1
   metadata_options {
-    http_tokens = "required"
+    http_tokens                 = "required"
     http_put_response_hop_limit = 1
   }
+
+  # tag_specifications {
+  #   tags = {
+  #     "group" = var.group
+  #   }
+  # }
 }
 
 // consider two node_group blocks for if we should
@@ -49,7 +55,7 @@ resource "aws_eks_node_group" "main" {
 
   cluster_name  = local.cluster_name
   node_role_arn = aws_iam_role.node[each.key].arn
-  subnet_ids    = aws_subnet.private[*].id
+  subnet_ids    = local.nodes_subnet_ids
 
   scaling_config {
     min_size     = each.value.min_size
@@ -69,7 +75,7 @@ resource "aws_eks_node_group" "main" {
 
   // the community module threads this through a
   // time_sleep resource
-  version = aws_eks_cluster.main.version
+  version = local.k8s_version
 
   instance_types = each.value.instance_types
 
@@ -86,6 +92,7 @@ resource "aws_eks_node_group" "main" {
 
   tags = {
     Name : each.value.name
+    "group" = local.group_name
   }
 
   lifecycle {
@@ -96,10 +103,12 @@ resource "aws_eks_node_group" "main" {
   }
 
   depends_on = [
-    aws_eks_cluster.main,
     aws_iam_role_policy_attachment.node,
-    kubernetes_annotations.cni_role,
   ]
+}
+
+locals {
+  iam_role_policy_prefix = "arn:${data.aws_partition.current.partition}:iam::aws:policy"
 }
 
 data "aws_iam_policy_document" "node_assume_role_policy" {

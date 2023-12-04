@@ -27,7 +27,34 @@ provision public/private subnet-pairs into.
 
 We will provision one NAT gateway per private subnet.
 
+# Instructions
+
+To spin up:
+
+- Create a file names `terraform.tfvars` in the root of this
+  repo, customize as you see fit.
+- Run `just`
+
+To clean up:
+
+- Run `just cleanup`
+
+If you make some change which requires re-creating the EKS
+control-plane, the apply will fail because the cluster node-
+groups still exist.
+
+To delete just the node-groups run `just cleanup-nodes`.
+
+# Structure
+
+This project has been broken-up into four different terraform
+sub-projects:
+
+- init: generate random labels and names for things
+- eks: provision networking and the EKS control-plane
+- k8s: perform and Kubernetes updates required for nodes to work
+- nodes: provision EKS node-groups
+
 # TODO
 
-- there are likely required-tags on nodes, subnets, sgs etc
-- IRSA
+
