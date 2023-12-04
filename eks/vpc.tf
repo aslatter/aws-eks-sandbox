@@ -33,10 +33,10 @@ resource "aws_default_security_group" "default" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
 
@@ -96,9 +96,9 @@ resource "aws_route" "public_internet_gateway" {
 resource "aws_route" "public_internet_gateway_ipv6" {
   count = var.ipv6_enable ? 1 : 0
 
-  route_table_id         = aws_route_table.public.id
+  route_table_id              = aws_route_table.public.id
   destination_ipv6_cidr_block = "::/0"
-  gateway_id             = aws_internet_gateway.main.id
+  gateway_id                  = aws_internet_gateway.main.id
 }
 
 // private subnet
@@ -243,9 +243,9 @@ resource "aws_route" "private_nat_gateway" {
 resource "aws_route" "private_internet_egress" {
   count = var.ipv6_enable ? var.node_az_count : 0
 
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id              = aws_route_table.private[count.index].id
   destination_ipv6_cidr_block = "::/0"
-  egress_only_gateway_id = aws_egress_only_internet_gateway.main[0].id
+  egress_only_gateway_id      = aws_egress_only_internet_gateway.main[0].id
 }
 
 // ipv6 stuff

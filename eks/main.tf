@@ -42,16 +42,16 @@ output "azs" {
 
 data "terraform_remote_state" "init" {
   backend = "local"
- 
+
   config = {
     path = "../init/terraform.tfstate"
   }
 }
 
 locals {
-  entropy = data.terraform_remote_state.init.outputs.entropy
+  entropy      = data.terraform_remote_state.init.outputs.entropy
   cluster_name = data.terraform_remote_state.init.outputs.name
-  group_name = data.terraform_remote_state.init.outputs.name
+  group_name   = data.terraform_remote_state.init.outputs.name
 }
 
 // We play some tricks to get all provisioned

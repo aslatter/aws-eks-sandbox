@@ -70,12 +70,12 @@ resource "aws_security_group_rule" "eks_nodes" {
       source_security_group = "cluster"
     },
     "egress" = {
-      description = "allow egress"
-      type        = "egress"
-      protocol    = "-1"
-      to_port     = 0
-      from_port   = 0
-      cidr_blocks = ["0.0.0.0/0"]
+      description      = "allow egress"
+      type             = "egress"
+      protocol         = "-1"
+      to_port          = 0
+      from_port        = 0
+      cidr_blocks      = ["0.0.0.0/0"]
       ipv6_cidr_blocks = ["::/0"]
     }
   }
@@ -86,9 +86,9 @@ resource "aws_security_group_rule" "eks_nodes" {
   from_port         = each.value.from_port
   to_port           = each.value.to_port
 
-  description = lookup(each.value, "description", null)
-  self        = lookup(each.value, "self", null)
-  cidr_blocks = lookup(each.value, "cidr_blocks", null)
+  description      = lookup(each.value, "description", null)
+  self             = lookup(each.value, "self", null)
+  cidr_blocks      = lookup(each.value, "cidr_blocks", null)
   ipv6_cidr_blocks = lookup(each.value, "ipv6_cidr_blocks", null)
 
   source_security_group_id = (try(each.value.source_security_group, null) == null

@@ -94,9 +94,9 @@ resource "aws_iam_role_policy_attachment" "eks" {
 
 output "eks" {
   value = {
-    name = aws_eks_cluster.main.name
-    endpoint = aws_eks_cluster.main.endpoint
+    name                   = aws_eks_cluster.main.name
+    endpoint               = aws_eks_cluster.main.endpoint
     cluster_ca_certificate = aws_eks_cluster.main.certificate_authority[0].data
-    version = aws_eks_cluster.main.version
+    version                = aws_eks_cluster.main.version
   }
 }

@@ -13,5 +13,5 @@ variable "name_prefix" {
 }
 
 output "name" {
-    value = "${var.name_prefix}-${random_string.suffix.result}"
+  value = "${var.name_prefix}-${random_string.suffix.result}"
 }

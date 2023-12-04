@@ -7,7 +7,7 @@ locals {
       namespace : "kube-system"
       serviceAccount : "aws-node"
       policyArns : {
-        "cni": "${local.iam_role_policy_prefix}/AmazonEKS_CNI_Policy"
+        "cni" : "${local.iam_role_policy_prefix}/AmazonEKS_CNI_Policy"
         "cni_ipv6" : aws_iam_policy.cni_ipv6_policy.arn
       }
     }
@@ -118,6 +118,6 @@ data "aws_iam_policy_document" "cni_ipv6_policy" {
 }
 
 resource "aws_iam_policy" "cni_ipv6_policy" {
-    name = "cni_ipv6_policy-${local.entropy}"
-    policy = data.aws_iam_policy_document.cni_ipv6_policy.json
+  name   = "cni_ipv6_policy-${local.entropy}"
+  policy = data.aws_iam_policy_document.cni_ipv6_policy.json
 }
