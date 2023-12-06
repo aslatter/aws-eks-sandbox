@@ -41,7 +41,7 @@ resource "aws_default_security_group" "default" {
   }
 
   tags = {
-    Name : "default"
+    Name : "sg-default"
   }
 }
 
@@ -254,4 +254,8 @@ resource "aws_egress_only_internet_gateway" "main" {
   count = var.ipv6_enable ? 1 : 0
 
   vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name : "eigw"
+  }
 }

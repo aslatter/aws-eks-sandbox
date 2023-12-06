@@ -31,6 +31,10 @@ resource "aws_eks_cluster" "main" {
     aws_security_group_rule.eks_cluster,
     aws_security_group_rule.eks_nodes,
   ]
+
+  tags = {
+    Name : "eks"
+  }
 }
 
 //

@@ -41,11 +41,19 @@ resource "aws_launch_template" "node" {
     http_put_response_hop_limit = 1
   }
 
-  # tag_specifications {
-  #   tags = {
-  #     "group" = var.group
-  #   }
-  # }
+  dynamic "tag_specifications" {
+    for_each = ["instance", "volume"]
+    content {
+      resource_type = tag_specifications.value
+      tags = {
+        "group" = local.group_name
+      }
+    }
+  }
+
+  tags = {
+    Name : "lt"
+  }
 }
 
 // consider two node_group blocks for if we should

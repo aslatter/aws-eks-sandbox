@@ -7,7 +7,7 @@ resource "aws_security_group" "eks_cluster" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name : "eks-cluster"
+    Name : "sg-eks-cluster"
   }
 
   lifecycle {
@@ -32,7 +32,7 @@ resource "aws_security_group" "eks_nodes" {
   vpc_id      = aws_vpc.main.id
 
   tags = {
-    Name : "eks-nodes"
+    Name : "sg-eks-nodes"
   }
 
   lifecycle {
