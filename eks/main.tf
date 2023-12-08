@@ -36,10 +36,6 @@ locals {
   azs = slice(random_shuffle.az.result, 0, max(var.cluster_az_count, var.node_az_count))
 }
 
-output "azs" {
-  value = local.azs
-}
-
 data "terraform_remote_state" "init" {
   backend = "local"
 

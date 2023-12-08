@@ -18,10 +18,6 @@ data "aws_vpc" "main" {
   id = aws_vpc.main.id
 }
 
-output "ipv6_cidr_block" {
-  value = var.ipv6_enable ? aws_vpc.main.ipv6_cidr_block : null
-}
-
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
   ingress {

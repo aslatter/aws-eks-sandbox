@@ -97,11 +97,3 @@ resource "aws_security_group_rule" "eks_nodes" {
     : null
   )
 }
-
-// TODO - move somewhere else?
-output "vpc" {
-  value = {
-    nodes_security_group_id : aws_security_group.eks_nodes.id
-    nodes_subnet_ids : aws_subnet.private[*].id
-  }
-}

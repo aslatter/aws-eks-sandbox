@@ -86,16 +86,6 @@ resource "aws_iam_role_policy_attachment" "eks_irsa" {
   role       = each.value.role
 }
 
-// output role ARNs
-output "pod_roles" {
-  value = {
-    for k, v in aws_iam_role.eks_irsa_role :
-    "${local.eks_pod_role_assignments[k].namespace}_${local.eks_pod_role_assignments[k].serviceAccount}" => {
-      arn : v.arn
-    }
-  }
-}
-
 // custom policies
 
 data "aws_iam_policy_document" "cni_ipv6_policy" {
