@@ -134,7 +134,7 @@ data "aws_iam_policy_document" "node_assume_role_policy" {
 // there isn't much value at the moment for creating a
 // role per node-group?
 resource "aws_iam_role" "node" {
-  for_each = local.eks_node_groups
+  for_each = { for k, v in local.eks_node_groups : k => v if lookup(v, "enabled", true) }
 
   name_prefix = "${each.value.name}-"
   // path
@@ -177,7 +177,7 @@ resource "aws_iam_role_policy_attachment" "node" {
         }
       }
     ]...)
-  ]...)
+  if lookup(group, "enabled", true) ]...)
 
   policy_arn = "${local.iam_role_policy_prefix}/${each.value.role}"
   role       = aws_iam_role.node[each.value.group].name
