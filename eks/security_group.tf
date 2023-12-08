@@ -41,10 +41,10 @@ resource "aws_security_group" "eks_nodes" {
 }
 
 resource "aws_security_group_rule" "eks_nodes" {
-  // the commnity eks module is a lot more restictive in
-  // its 'nodes' security-group. here, we allow all node->node
-  // traffic.
   for_each = {
+  // the commnity eks module is a lot more restictive in
+  // what node-to-node traffic it allows. here, we allow all node->node
+  // traffic.
     "ingress_self" = {
       description = "node-to-node traffic"
       type        = "ingress"
@@ -53,22 +53,18 @@ resource "aws_security_group_rule" "eks_nodes" {
       to_port     = 0
       self        = true
     },
-    "ingress_cluster_tls" = {
-      description           = "control-plane to node TLS"
+    // the community eks module is a lot more restrictive on
+    // what communication it allows from the EKS control-plane
+    // to the nodes. Debugging which ports to open up is a challenge,
+    // however.
+    control_plane = {
+      desciption            = "allow all from control plane"
       type                  = "ingress"
-      protocol              = "tcp"
-      from_port             = 443
-      to_port               = 443
+      protocol              = "-1"
+      to_port               = 0
+      from_port             = 0
       source_security_group = "cluster"
-    },
-    "ingress_cluster_kubelet" = {
-      description           = "control plane to kubelet"
-      type                  = "ingress"
-      protocol              = "tcp"
-      from_port             = 10250
-      to_port               = 10250
-      source_security_group = "cluster"
-    },
+    }
     "egress" = {
       description      = "allow egress"
       type             = "egress"
