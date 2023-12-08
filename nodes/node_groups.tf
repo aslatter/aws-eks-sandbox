@@ -42,7 +42,7 @@ resource "aws_launch_template" "node" {
   }
 
   dynamic "tag_specifications" {
-    for_each = ["instance", "volume"]
+    for_each = ["instance", "volume", "network-interface"]
     content {
       resource_type = tag_specifications.value
       tags = {
