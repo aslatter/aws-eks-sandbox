@@ -177,7 +177,7 @@ resource "aws_iam_role_policy_attachment" "node" {
         }
       }
     ]...)
-  if lookup(group, "enabled", true) ]...)
+  if lookup(group, "enabled", true)]...)
 
   policy_arn = "${local.iam_role_policy_prefix}/${each.value.role}"
   role       = aws_iam_role.node[each.value.group].name
