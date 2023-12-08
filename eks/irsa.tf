@@ -11,6 +11,13 @@ locals {
         "cni_ipv6" : aws_iam_policy.cni_ipv6_policy.arn
       }
     }
+    lb_controler : {
+      namespace : "kube-system"
+      serviceAccount : "aws-lb-controller"
+      policyArns : {
+        lb_controler : aws_iam_policy.lb_controler.arn
+      }
+    }
   }
 }
 
@@ -84,30 +91,4 @@ resource "aws_iam_role_policy_attachment" "eks_irsa" {
 
   policy_arn = each.value.policy
   role       = each.value.role
-}
-
-// custom policies
-
-data "aws_iam_policy_document" "cni_ipv6_policy" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ec2:AssignIpv6Addresses",
-      "ec2:DescribeInstances",
-      "ec2:DescribeTags",
-      "ec2:DescribeNetworkInterfaces",
-      "ec2:DescribeInstanceTypes"
-    ]
-    resources = ["*"]
-  }
-  statement {
-    effect    = "Allow"
-    actions   = ["ec2:CreateTags"]
-    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:network-interface/*"]
-  }
-}
-
-resource "aws_iam_policy" "cni_ipv6_policy" {
-  name   = "cni_ipv6_policy-${local.entropy}"
-  policy = data.aws_iam_policy_document.cni_ipv6_policy.json
 }

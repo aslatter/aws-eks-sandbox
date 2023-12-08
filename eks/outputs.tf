@@ -38,6 +38,7 @@ output "ipv6_cidr_block" {
 
 output "vpc" {
   value = {
+    vpc_id : aws_vpc.main.id
     nodes_security_group_id : aws_security_group.eks_nodes.id
     nodes_subnet_ids : aws_subnet.private[*].id
   }
