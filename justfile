@@ -1,5 +1,5 @@
 
-default: nodes
+default: k8s2
 clean: clean-init
 
 init:
@@ -18,6 +18,10 @@ nodes: k8s
     terraform -chdir=nodes init
     terraform -chdir=nodes apply -var-file=../terraform.tfvars -compact-warnings
 
+k8s2: nodes
+    terraform -chdir=k8s2 init
+    terraform -chdir=k8s2 apply -var-file=../terraform.tfvars -compact-warnings
+
 clean-init: clean-eks
     terraform -chdir=init destroy -var-file=../terraform.tfvars -compact-warnings
 
@@ -27,5 +31,8 @@ clean-eks: clean-k8s
 clean-k8s: clean-nodes
     terraform -chdir=k8s destroy -var-file=../terraform.tfvars -compact-warnings
 
-clean-nodes:
+clean-nodes: clean-k8s2
     terraform -chdir=nodes destroy -var-file=../terraform.tfvars -compact-warnings
+
+clean-k8s2:
+    terraform -chdir=k8s2 destroy -var-file=../terraform.tfvars -compact-warnings
