@@ -54,7 +54,70 @@ sub-projects:
 - eks: provision networking and the EKS control-plane
 - k8s: perform and Kubernetes updates required for nodes to work
 - nodes: provision EKS node-groups
+- k8s2: install "core" k8s components
 
-# TODO
+# Ingress
 
+This project deploys a Netwok Load Balancer, and a target-group
+which port-80 on this load-balancer is redirected to. The ARN for
+this target-group is an output of the 'eks' project.
+
+You can then use a "Target Group Bindin" CRD to register pods with
+this target-group. Because we're using the Amazon CNI, the pod IPs
+will be directly registered with the load-balancer.
+
+I haven't given much thought to how dual-AZ load-balancing should
+work in EKS, so that part of this setup may need tweaks.
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-node
+  labels:
+    app: hello-node
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-node
+  template:
+    metadata:
+      labels:
+        app: hello-node
+    spec:
+      containers:
+      - name: hello-node
+        image: registry.k8s.io/e2e-test-images/agnhost:2.39
+        ports:
+          - name: http
+            containerPort: 8080
+        command: ["/agnhost", "netexec", "--http-port=8080"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-node
+  labels:
+    app: hello-node
+spec:
+  selector:
+    app: hello-node
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: http
+---
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: hello-node
+spec:
+  serviceRef:
+    name: hello-node
+    port: 80
+  targetGroupARN: <target group ARN goes here>
+  targetType: ip
+```
 

@@ -28,8 +28,8 @@ resource "aws_eks_cluster" "main" {
 
   depends_on = [
     aws_iam_role_policy_attachment.eks,
-    aws_security_group_rule.eks_cluster,
-    aws_security_group_rule.eks_nodes,
+    aws_vpc_security_group_ingress_rule.eks_cluster,
+    aws_vpc_security_group_ingress_rule.eks_nodes,
   ]
 
   tags = {

@@ -65,8 +65,14 @@ variable "eks_k8s_version" {
 
 variable "public_access_cidrs" {
   type        = list(string)
-  default     = ["0.0.0.0/0", "::/0"]
+  default     = ["0.0.0.0/0"]
   description = "CIDR-blocks from which to allow inbound access to resources"
+}
+
+variable "public_access_cidrs_ipv6" {
+  type        = list(string)
+  default     = ["::/0"]
+  description = "IPv6 CIDR-blocks from which to allow inbound access to resources"
 }
 
 variable "ipv6_enable" {

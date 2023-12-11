@@ -224,6 +224,16 @@ resource "aws_nat_gateway" "main" {
   }
 }
 
+resource "aws_egress_only_internet_gateway" "main" {
+  count = var.ipv6_enable ? 1 : 0
+
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name : "eigw"
+  }
+}
+
 // add route to each of our private-subnet route-tables for internet
 // egress.
 resource "aws_route" "private_nat_gateway" {
@@ -244,14 +254,54 @@ resource "aws_route" "private_internet_egress" {
   egress_only_gateway_id      = aws_egress_only_internet_gateway.main[0].id
 }
 
-// ipv6 stuff
+// incoming NLB
 
-resource "aws_egress_only_internet_gateway" "main" {
-  count = var.ipv6_enable ? 1 : 0
-
-  vpc_id = aws_vpc.main.id
+resource "aws_eip" "nlb" {
+  // creating one per node-AZ
+  count  = var.node_az_count
+  domain = "vpc"
 
   tags = {
-    Name : "eigw"
+    Name : "eip-nlb-${local.azs[count.index]}"
   }
+}
+
+resource "aws_lb" "nlb" {
+  name_prefix        = "eks"
+  internal           = false
+  load_balancer_type = "network"
+  security_groups    = [aws_security_group.nlb.id]
+  ip_address_type    = var.ipv6_enable ? "dualstack" : null
+
+  dynamic "subnet_mapping" {
+    for_each = range(var.node_az_count)
+    content {
+      subnet_id     = aws_subnet.public[subnet_mapping.value].id
+      allocation_id = aws_eip.nlb[subnet_mapping.value].allocation_id
+    }
+  }
+
+  tags = {
+    Name : "nlb"
+  }
+}
+
+resource "aws_lb_listener" "nlb_http" {
+  load_balancer_arn = aws_lb.nlb.arn
+  port = "80"
+  protocol = "TCP"
+
+  default_action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.nlb_http.arn
+  }
+}
+
+resource "aws_lb_target_group" "nlb_http" {
+  target_type = "ip"
+  protocol = "TCP"
+  port = "80" // doesn't matter, as the targets will override this
+  ip_address_type = var.ipv6_enable ? "ipv6" : null
+  vpc_id = aws_vpc.main.id
+  // preserve client ip?
 }
