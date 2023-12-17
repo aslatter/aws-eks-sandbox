@@ -1,5 +1,8 @@
 
+// custom IAM policies
 
+// AWS only has a standard policy for IPv4 CNI. This is the recommendation
+// for IPv6.
 data "aws_iam_policy_document" "cni_ipv6_policy" {
   statement {
     effect = "Allow"
@@ -24,6 +27,9 @@ resource "aws_iam_policy" "cni_ipv6_policy" {
   policy = data.aws_iam_policy_document.cni_ipv6_policy.json
 }
 
+// This is the policy we attach to the role used by the AWS
+// Load Balancer Controller.
+//
 // https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json
 //
 // This is extremely cut-down from the above policy, as we only
@@ -65,6 +71,9 @@ data "aws_iam_policy_document" "lb_controler" {
       "elasticloadbalancing:RegisterTargets",
       "elasticloadbalancing:DeregisterTargets"
     ]
+    // while we're customizing things, we may as well
+    // scope the access to the precise resource we wish
+    // to modify.
     resources = [aws_lb_target_group.nlb_http.arn]
   }
 }

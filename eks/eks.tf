@@ -1,8 +1,4 @@
 
-locals {
-  public_access_cidrs = concat(var.public_access_cidrs)
-}
-
 resource "aws_eks_cluster" "main" {
   name     = local.cluster_name
   role_arn = aws_iam_role.eks.arn
@@ -17,7 +13,7 @@ resource "aws_eks_cluster" "main" {
   vpc_config {
     security_group_ids  = [aws_security_group.eks_cluster.id]
     subnet_ids          = aws_subnet.intra[*].id
-    public_access_cidrs = local.public_access_cidrs
+    public_access_cidrs = var.public_access_cidrs
     // because we're setting public_access_cidrs we either
     // need to enable private access, or add the NAT gateway outbound IPs
     // to the public-access-cidrs list.
@@ -61,8 +57,6 @@ resource "aws_iam_role" "eks" {
   force_detach_policies = true
 
   # https://github.com/terraform-aws-modules/terraform-aws-eks/issues/920
-
-  // tags = {}
 }
 
 locals {
@@ -76,7 +70,6 @@ resource "aws_iam_role_policy_attachment" "eks" {
   for_each = {
     AmazonEKSClusterPolicy         = "${local.iam_role_policy_prefix}/AmazonEKSClusterPolicy",
     AmazonEKSVPCResourceController = "${local.iam_role_policy_prefix}/AmazonEKSVPCResourceController",
-    // TODO - create and add ipv6 role
   }
 
   policy_arn = each.value

@@ -14,10 +14,9 @@ resource "aws_vpc" "main" {
   }
 }
 
-data "aws_vpc" "main" {
-  id = aws_vpc.main.id
-}
-
+// the default security group for a VPC is the security group
+// resources end up in if we don't specify any other security
+// group.
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
   ingress {
@@ -26,6 +25,7 @@ resource "aws_default_security_group" "default" {
     from_port   = 0
     to_port     = 0
     cidr_blocks = var.public_access_cidrs
+    ipv6_cidr_blocks = var.public_access_cidrs_ipv6
   }
 
   egress {
@@ -41,12 +41,15 @@ resource "aws_default_security_group" "default" {
   }
 }
 
-// I don't fully understand how ACLs would be useful,
-// as they are not stateful.
-
-// public subnet
+// we could apply ACLs to our subnets here, but they seem to
+// be pretty limitted because they are not stateful.
 //
-// the public subet will hold any load-balencers for ingress.
+// https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html
+
+// Public Subnet
+//
+// The public subets will hold any load-balancers for ingress.
+// We create one public subnet per AZ we are creating nodes in.
 resource "aws_subnet" "public" {
   count = var.node_az_count
 
@@ -106,6 +109,10 @@ resource "aws_route" "public_internet_gateway_ipv6" {
 // we have as many subnets as we wish to have AZs for
 // out k8s nodes. We also provision a separate NAT
 // gateway per AZ.
+//
+// We also create a route to the "egress only internet
+// gateway" for ipv6 (NAT gateway only supports ipv4
+// destinations).
 resource "aws_subnet" "private" {
   count = var.node_az_count
 

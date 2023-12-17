@@ -32,12 +32,20 @@ provider "kubernetes" {
   }
 }
 
-// for resources we provision, we expect to perform the required k8s annotations
-// as we create them.
+// IRSA requires a service-account annotation to tell the mutating admission
+// controller to wire things up for the pods. Normally, we would expect the
+// author of an application to supply this annotation.
 //
 // However for services provisioned by EKS or addons, we need to add the
 // annotation ourselves.
-
+//
+// Here, we're wiring up IRSA to the CNI service-account. This needs to happen
+// after we create the control-plane but before we create any nodes (thankfully
+// the IRSA web-hook doesn't run on our compute - we'd be pretty stuck if that
+// were the case)/
+//
+// This issue makes reference to the CNI boostrapping issue (but isn't really about it):
+//   https://github.com/aws/containers-roadmap/issues/1666
 resource "kubernetes_annotations" "cni_role" {
   api_version = "v1"
   kind        = "ServiceAccount"

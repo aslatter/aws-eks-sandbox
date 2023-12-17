@@ -1,6 +1,6 @@
 
 locals {
-  // TODO - move to variables?
+  // This could come in as a variable
   eks_node_group_defaults = {
     ami_type = "AL2_x86_64"
   }
@@ -8,6 +8,8 @@ locals {
     one : {
       name : "node-group-1"
 
+      // AWS allows apecifying multiple instance-types
+      // to use.
       instance_types : ["t3a.small", "t3.small"]
 
       min_size : 0
@@ -29,19 +31,23 @@ locals {
 }
 
 resource "aws_launch_template" "node" {
-  // install SSM-agent
-  user_data = base64encode(file("${path.module}/init_node.sh"))
 
-  // assign to custom sg
+  // assign to node sg (this also becomes the pod sg)
   vpc_security_group_ids = [local.nodes_security_group_id]
 
-  // require imdsv2, set hop-limit to 1
+  // require imdsv2, set hop-limit to 1. this prevents
+  // pods not using host-networking from accessing IMDS.
   metadata_options {
     http_tokens                 = "required"
     http_put_response_hop_limit = 1
   }
 
   dynamic "tag_specifications" {
+    // attach our tracking-tags to everything interesting
+    // created by the managed node group. This doesn't
+    // actually work for network-interfaces :-(
+    //
+    // https://github.com/aws/containers-roadmap/issues/1496
     for_each = ["instance", "volume", "network-interface"]
     content {
       resource_type = tag_specifications.value
@@ -78,8 +84,8 @@ resource "aws_eks_node_group" "main" {
     version = aws_launch_template.node.latest_version
   }
 
+  // I have no idea how to manage node-AMI versions
   ami_type = local.eks_node_group_defaults.ami_type
-  // release version?
 
   // the community module threads this through a
   // time_sleep resource
@@ -105,9 +111,6 @@ resource "aws_eks_node_group" "main" {
 
   lifecycle {
     create_before_destroy = true
-    # ignore_changes = [
-    #   scaling_config[0].desired_size,
-    # ]
   }
 
   depends_on = [
@@ -165,10 +168,6 @@ resource "aws_iam_role_policy_attachment" "node" {
         // required EKS policies
         "AmazonEKSWorkerNodePolicy",
         "AmazonEC2ContainerRegistryReadOnly",
-
-        // required for system management
-        "CloudWatchAgentServerPolicy",
-        "AmazonSSMManagedInstanceCore",
       ] :
       {
         "${group_key}-${role}" : {
@@ -182,5 +181,3 @@ resource "aws_iam_role_policy_attachment" "node" {
   policy_arn = "${local.iam_role_policy_prefix}/${each.value.role}"
   role       = aws_iam_role.node[each.value.group].name
 }
-
-// additional role-policy-attachments?
