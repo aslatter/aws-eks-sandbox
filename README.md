@@ -1,8 +1,54 @@
 
 # Learning how to provision EKS through TF.
 
-All of this is inspired by the community VPC and EKS modules,
-except slimmed-down.
+All of this is inspired by the community VPC and EKS modules. In
+particular the VPC design follows the same basic structure as
+the community module. The EKS community module is invaluable
+for understanding how to work with EKS and Terraform.
+
+Links:
+* https://github.com/terraform-aws-modules/terraform-aws-vpc
+* https://github.com/terraform-aws-modules/terraform-aws-eks
+
+# Using
+
+Create a file `terraform.tfvar` in the root of your checkout
+of this repo. By default, none of the provisioed resources
+admit traffic from the public internete. You'll need to modify
+the variables `public_access_cidrs` (and optionally
+`public_access_cidrs_ipv6`) to admit any traffic.
+
+The *justfile* coordinates the deployment steps:
+
+* `just` will build out a new cluster
+* `just clean` will tear it down
+
+If you make some change which requires re-creating the EKS
+control-plane, the apply will fail because the cluster node-
+groups still exist.
+
+To delete just the node-groups run `just cleanup-nodes`.
+
+I haven't put too much though into the structure of the
+various terraform outputs, sorry.
+
+This is not a "production ready" EKS deployment, as the "public
+access" variables control access to both the front-end load-balancer
+and the EKS control-plane. Also I have done very little testing
+& tuning - this repo was created as a learning exercise.
+
+# Structure
+
+This project has been broken-up into multiple terraform
+sub-projects:
+
+- init: generate random labels and names for things
+- eks: provision networking and the EKS control-plane
+- k8s: perform any Kubernetes updates required for nodes to work
+- nodes: provision EKS node-groups
+- k8s2: install "core" k8s components
+
+# Details
 
 We provision three types of sub-nets:
 
@@ -26,35 +72,6 @@ The variable "node_az_count" determines how many AZs we will
 provision public/private subnet-pairs into.
 
 We will provision one NAT gateway per private subnet.
-
-# Instructions
-
-To spin up:
-
-- Create a file names `terraform.tfvars` in the root of this
-  repo, customize as you see fit.
-- Run `just`
-
-To clean up:
-
-- Run `just cleanup`
-
-If you make some change which requires re-creating the EKS
-control-plane, the apply will fail because the cluster node-
-groups still exist.
-
-To delete just the node-groups run `just cleanup-nodes`.
-
-# Structure
-
-This project has been broken-up into four different terraform
-sub-projects:
-
-- init: generate random labels and names for things
-- eks: provision networking and the EKS control-plane
-- k8s: perform and Kubernetes updates required for nodes to work
-- nodes: provision EKS node-groups
-- k8s2: install "core" k8s components
 
 # Ingress
 
