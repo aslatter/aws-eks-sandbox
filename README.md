@@ -62,12 +62,27 @@ This project deploys a Netwok Load Balancer, and a target-group
 which port-80 on this load-balancer is redirected to. The ARN for
 this target-group is an output of the 'eks' project.
 
-You can then use a "Target Group Bindin" CRD to register pods with
-this target-group. Because we're using the Amazon CNI, the pod IPs
-will be directly registered with the load-balancer.
+We then install nginx-ingress into the cluster, and tell the AWS
+Load Balancer Controller to use the nginx-controller as the back-end
+for the load-balancer on port 80.
+
+To test out the connection:
+
+```
+curl "$(terraform -chdir=eks output -json vpc | jq -r .nlb_dns_name)"
+```
+
+This should return 404, as there aren't any ingress-objects installed
+in the cluster.
 
 I haven't given much thought to how dual-AZ load-balancing should
 work in EKS, so that part of this setup may need tweaks.
+
+I also have put no thought into the health-check timings of the NLB,
+nor have I configured the pod-readiness gate to make what I'm doing
+safe.
+
+The following demo app should be publically reachable:
 
 ```yaml
 ---
@@ -109,15 +124,22 @@ spec:
       port: 80
       targetPort: http
 ---
-apiVersion: elbv2.k8s.aws/v1beta1
-kind: TargetGroupBinding
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
   name: hello-node
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  serviceRef:
-    name: hello-node
-    port: 80
-  targetGroupARN: <target group ARN goes here>
-  targetType: ip
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /testpath
+        pathType: Prefix
+        backend:
+          service:
+            name: hello-node
+            port:
+              name: http
 ```
-

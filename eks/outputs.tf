@@ -43,5 +43,6 @@ output "vpc" {
     nodes_subnet_ids : aws_subnet.private[*].id
     nlb_security_group_id : aws_security_group.nlb.id
     nlb_target_group_http_arn : aws_lb_target_group.nlb_http.arn
+    nlb_dns_name : aws_lb.nlb.dns_name
   }
 }
