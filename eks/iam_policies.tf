@@ -71,10 +71,15 @@ data "aws_iam_policy_document" "lb_controler" {
       "elasticloadbalancing:RegisterTargets",
       "elasticloadbalancing:DeregisterTargets"
     ]
+    resources = ["*"]
     // while we're customizing things, we may as well
     // scope the access to the precise resource we wish
     // to modify.
-    resources = [aws_lb_target_group.nlb_http.arn]
+    condition {
+      test = "StringEquals"
+      variable = "aws:ResourceTag/group"
+      values = [local.group_name]
+    }
   }
 }
 
