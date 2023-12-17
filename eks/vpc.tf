@@ -288,20 +288,20 @@ resource "aws_lb" "nlb" {
 
 resource "aws_lb_listener" "nlb_http" {
   load_balancer_arn = aws_lb.nlb.arn
-  port = "80"
-  protocol = "TCP"
+  port              = "80"
+  protocol          = "TCP"
 
   default_action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = aws_lb_target_group.nlb_http.arn
   }
 }
 
 resource "aws_lb_target_group" "nlb_http" {
-  target_type = "ip"
-  protocol = "TCP"
-  port = "80" // doesn't matter, as the targets will override this
+  target_type     = "ip"
+  protocol        = "TCP"
+  port            = "80" // doesn't matter, as the targets will override this
   ip_address_type = var.ipv6_enable ? "ipv6" : null
-  vpc_id = aws_vpc.main.id
+  vpc_id          = aws_vpc.main.id
   // preserve client ip?
 }

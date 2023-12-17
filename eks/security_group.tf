@@ -175,8 +175,8 @@ resource "aws_vpc_security_group_egress_rule" "eks_nodes" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "nlb_nodes" {
-  security_group_id = aws_security_group.nlb.id
-  ip_protocol = "all"
+  security_group_id            = aws_security_group.nlb.id
+  ip_protocol                  = "all"
   referenced_security_group_id = aws_security_group.eks_nodes.id
 }
 
