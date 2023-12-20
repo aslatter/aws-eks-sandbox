@@ -2,6 +2,10 @@
 resource "kubernetes_namespace" "ingress_controller" {
   metadata {
     name = "ingress-controller"
+    labels = {
+      // https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.1/deploy/pod_readiness_gate/
+      "elbv2.k8s.aws/pod-readiness-gate-inject" : "enabled"
+    }
   }
 }
 
