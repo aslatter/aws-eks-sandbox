@@ -25,13 +25,19 @@ resource "helm_release" "ingress_controller" {
       }
 
       admissionWebhooks : {
-        // I wouldn't mind having this on, but it was timing
-        // out for some reason?
-        enabled : false
+        // Overide the webhook port to the same one used by the
+        // lb-controller webhook. This way we don't need to punch
+        // a separate hole in the SG (the control-plane seems to
+        // directly invoke webhooks via pod networking, bypassing
+        // kube-proxy?).
+        port : 9443
       }
+
+      recplicaCount : 2
     }
   })]
 }
+
 
 // ask the aws lb-controller to link the ingress service to
 // the back-end of our load-balancer.
