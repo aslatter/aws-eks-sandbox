@@ -20,11 +20,11 @@ resource "aws_vpc" "main" {
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
   ingress {
-    protocol    = -1
-    self        = true
-    from_port   = 0
-    to_port     = 0
-    cidr_blocks = var.public_access_cidrs
+    protocol         = -1
+    self             = true
+    from_port        = 0
+    to_port          = 0
+    cidr_blocks      = var.public_access_cidrs
     ipv6_cidr_blocks = var.public_access_cidrs_ipv6
   }
 

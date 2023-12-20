@@ -76,9 +76,9 @@ data "aws_iam_policy_document" "lb_controler" {
     // scope the access to the precise resource we wish
     // to modify.
     condition {
-      test = "StringEquals"
+      test     = "StringEquals"
       variable = "aws:ResourceTag/group"
-      values = [local.group_name]
+      values   = [local.group_name]
     }
   }
 }
