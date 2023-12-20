@@ -305,10 +305,23 @@ resource "aws_lb_listener" "nlb_http" {
 }
 
 resource "aws_lb_target_group" "nlb_http" {
+  name_prefix     = "http-"
   target_type     = "ip"
   protocol        = "TCP"
   port            = "80" // doesn't matter, as the targets will override this
   ip_address_type = var.ipv6_enable ? "ipv6" : null
   vpc_id          = aws_vpc.main.id
   // preserve client ip?
+
+  health_check {
+    protocol          = "TCP"
+    healthy_threshold = 2
+    interval          = 10 // seconds
+  }
+
+  lifecycle {
+    // we can't delete a target-group if its in-use by the
+    // listener default-action.
+    create_before_destroy = true
+  }
 }

@@ -39,15 +39,33 @@ resource "kubectl_manifest" "ingress_controller_http_tgb" {
       name : "ingress-controller-http"
       namespace : kubernetes_namespace.ingress_controller.metadata[0].name
     }
-    spec : {
-      serviceRef : {
-        name : "nginx-ingress-ingress-nginx-controller"
-        port : "http"
-      }
-      targetGroupARN : local.nlb_target_group_http_arn
-      targetType : "ip"
-    }
+    spec : jsondecode(null_resource.ingress_controller_http_tgb.triggers.spec)
   })
 
-  depends_on = [ helm_release.lb_controller ]
+  depends_on = [helm_release.lb_controller]
+
+  lifecycle {
+    replace_triggered_by = [null_resource.ingress_controller_http_tgb]
+  }
 }
+
+locals {
+  // we do some tricks to force the TargetGroupBinding to
+  // get re-created whenever the spec changes, as the CRD
+  // doesn't like updates to various fields.
+  http_tgb_spec = {
+    serviceRef : {
+      name : "nginx-ingress-ingress-nginx-controller"
+      port : "http"
+    }
+    targetGroupARN : local.nlb_target_group_http_arn
+    targetType : "ip"
+  }
+}
+
+resource "null_resource" "ingress_controller_http_tgb" {
+  triggers = {
+    spec = jsonencode(local.http_tgb_spec)
+  }
+}
+
