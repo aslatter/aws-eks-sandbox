@@ -305,6 +305,11 @@ resource "aws_lb_listener" "nlb_http" {
 }
 
 resource "aws_lb_target_group" "nlb_http" {
+  // there might be some advantages to "instance" style target-groups,
+  // but I've had trouble getting those to work with ipv6.
+  //
+  // https://github.com/hashicorp/terraform-provider-aws/issues/35010
+
   name_prefix     = "http-"
   target_type     = "ip"
   protocol        = "TCP"

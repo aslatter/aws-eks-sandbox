@@ -11,12 +11,19 @@ resource "aws_eks_cluster" "main" {
   }
 
   vpc_config {
-    security_group_ids  = [aws_security_group.eks_cluster.id]
-    subnet_ids          = aws_subnet.intra[*].id
-    public_access_cidrs = var.public_access_cidrs
+    // default behavior is to apply this SG to the control-plane
+    // ENIs provisioned in our VPC and for the nodes, however
+    // we use a separate SG for nodes in our node-launch-templates.
+    security_group_ids = [aws_security_group.eks_cluster.id]
+    // determines the AZs to provision the control-plane into. We must
+    // have at least two AZs specified here. We can provision nodes into
+    // more or fewer zones, and onto completely different subnets (as long
+    // as the routes and SGs allow for communication).
+    subnet_ids = aws_subnet.intra[*].id
     // because we're setting public_access_cidrs we either
     // need to enable private access, or add the NAT gateway outbound IPs
     // to the public-access-cidrs list.
+    public_access_cidrs     = var.public_access_cidrs
     endpoint_private_access = true
   }
 
@@ -83,7 +90,7 @@ resource "aws_iam_role" "eks" {
 
   assume_role_policy = data.aws_iam_policy_document.eks_assume_role_policy.json
   // permissions_boundary  = null
-  force_detach_policies = true
+  force_detach_policies = true // I don't think we need this?
 
   # https://github.com/terraform-aws-modules/terraform-aws-eks/issues/920
 }
