@@ -111,6 +111,7 @@ resource "aws_iam_role_policy_attachment" "eks" {
   for_each = {
     AmazonEKSClusterPolicy         = "${local.iam_role_policy_prefix}/AmazonEKSClusterPolicy",
     AmazonEKSVPCResourceController = "${local.iam_role_policy_prefix}/AmazonEKSVPCResourceController",
+    restrict_eni_access            = aws_iam_policy.restrict_eni_access.arn
     EKSKMS                         = aws_iam_policy.eks_secrets.arn,
   }
 

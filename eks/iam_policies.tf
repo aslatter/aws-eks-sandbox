@@ -27,6 +27,25 @@ resource "aws_iam_policy" "cni_ipv6_policy" {
   policy = data.aws_iam_policy_document.cni_ipv6_policy.json
 }
 
+data "aws_iam_policy_document" "restrict_eni_access" {
+  // scope ENI actions to the private subnets.
+  statement {
+    effect    = "Deny"
+    actions   = ["*"]
+    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:network-interface/*"]
+    condition {
+      test     = "ForAllValues:StringNotEquals"
+      variable = "ec2:Subnet"
+      values   = aws_subnet.private[*].arn
+    }
+  }
+}
+
+resource "aws_iam_policy" "restrict_eni_access" {
+  name   = "restrict_eni_access-${local.entropy}"
+  policy = data.aws_iam_policy_document.restrict_eni_access.json
+}
+
 // This is the policy we attach to the role used by the AWS
 // Load Balancer Controller.
 //

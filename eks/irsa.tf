@@ -11,6 +11,7 @@ locals {
       policyArns : {
         "cni" : "${local.iam_role_policy_prefix}/AmazonEKS_CNI_Policy"
         "cni_ipv6" : aws_iam_policy.cni_ipv6_policy.arn
+        "restrict_eni_access" : aws_iam_policy.restrict_eni_access.arn
       }
     }
     lb_controler : {
