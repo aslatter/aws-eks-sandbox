@@ -50,7 +50,8 @@ resource "aws_eks_cluster" "main" {
 //
 
 resource "aws_kms_key" "eks_secrets" {
-  description = "EKS Secrets Encryption"
+  description             = "EKS Secrets Encryption"
+  deletion_window_in_days = 7 // minimum possible
   tags = {
     Name : "k-eks-secrets"
   }
