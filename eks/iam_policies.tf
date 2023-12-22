@@ -106,3 +106,73 @@ resource "aws_iam_policy" "lb_controler" {
   name   = "lb_controler-${local.entropy}"
   policy = data.aws_iam_policy_document.lb_controler.json
 }
+
+//
+// Permission boundary for roles used in-cluster
+//
+// A permission-boundary defines the maximum permissions
+// a principal may have - it does not actually grant
+// any permissions.
+//
+
+data "aws_iam_policy_document" "permission_boundary" {
+  statement {
+    // allow accessing tagged resources
+    effect = "Allow"
+    actions = [
+      // core infrastructure needed to provision EKS
+      "ec2:*",
+      "eks-auth:*",
+      "elasticloadbalancing:*",
+      "kms:*",
+
+      // stuff I probably want to use
+      "s3:*",
+      "ebs:*",
+      "dynamodb:*",
+      "sqs:*",
+      "events:*"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/group"
+      values   = ["$${aws:PrincipalTag/group}"]
+    }
+  }
+  statement {
+    // allow read-only actions (many of these cannot be
+    // scoped to a resource).
+    effect = "Allow"
+    actions = [
+      "autoscaling:Describe*",
+      "ec2:Describe*",
+      "ec2:Get*",
+      "elasticloadbalancing:Describe*",
+
+      // read-only access to ECR
+      // see: AmazonEC2ContainerRegistryReadOnly
+      "ecr:Get*",
+      "ecr:Describe*",
+      "ecr:List*",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    // allow working with network-interface :-/
+    // we cannot tag these. In the policies
+    // themselves we try to scope this down.
+    //
+    // https://github.com/aws/containers-roadmap/issues/1496
+    effect    = "Allow"
+    actions   = ["ec2:*"]
+    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:network-interface/*"]
+  }
+}
+
+resource "aws_iam_policy" "eks_permission_boundary" {
+  name   = "cluster_permission_boundary-${local.entropy}"
+  policy = data.aws_iam_policy_document.permission_boundary.json
+}

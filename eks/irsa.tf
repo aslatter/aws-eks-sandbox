@@ -73,7 +73,7 @@ resource "aws_iam_role" "eks_irsa_role" {
 
   name_prefix = "eks-${each.key}-"
 
-  // permission boundaries?
+  permissions_boundary = aws_iam_policy.eks_permission_boundary.arn
   // max-session duration?
 
   assume_role_policy = data.aws_iam_policy_document.eks_irsa_trust_policy[each.key].json

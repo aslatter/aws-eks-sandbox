@@ -5,7 +5,10 @@ output "info" {
       name = aws_resourcegroups_group.group.name
       id   = aws_resourcegroups_group.group.arn
     }
+
     region = var.region
+
+    permission_bounary_policy_arn = aws_iam_policy.eks_permission_boundary.arn
   }
 }
 
