@@ -21,6 +21,9 @@ the variables `public_access_cidrs` (and optionally
 The *justfile* coordinates the deployment steps:
 
 * `just` will build out a new cluster
++ `just kubeconfig` will *replace* `~/.kube/config` with
+  configuration appropriate for connecting to the new
+  cluster.
 * `just clean` will tear it down
 
 If you make some change which requires re-creating the EKS

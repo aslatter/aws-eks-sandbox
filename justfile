@@ -36,3 +36,6 @@ clean-nodes: clean-k8s2
 
 clean-k8s2:
     terraform -chdir=k8s2 destroy -var-file=../terraform.tfvars -compact-warnings
+
+kubeconfig:
+    terraform -chdir=eks output -json eks | jq -r .kubeconfig > ~/.kube/config

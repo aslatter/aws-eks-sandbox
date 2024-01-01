@@ -22,6 +22,7 @@ output "eks" {
     endpoint               = aws_eks_cluster.main.endpoint
     cluster_ca_certificate = aws_eks_cluster.main.certificate_authority[0].data
     version                = aws_eks_cluster.main.version
+    kubeconfig             = local.kubeconfig
   }
 }
 
