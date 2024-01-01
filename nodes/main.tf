@@ -41,7 +41,7 @@ locals {
   cluster_name = data.terraform_remote_state.init.outputs.name
   group_name   = data.terraform_remote_state.init.outputs.name
 
-  region = data.terraform_remote_state.eks.outputs.info.region
+  region                        = data.terraform_remote_state.eks.outputs.info.region
   permission_bounary_policy_arn = data.terraform_remote_state.eks.outputs.info.permission_bounary_policy_arn
 
   nodes_security_group_id = data.terraform_remote_state.eks.outputs.vpc.nodes_security_group_id

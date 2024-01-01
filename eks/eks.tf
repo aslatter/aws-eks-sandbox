@@ -89,7 +89,7 @@ data "aws_iam_policy_document" "eks_assume_role_policy" {
 resource "aws_iam_role" "eks" {
   name_prefix = "${local.cluster_name}-cluster-"
 
-  assume_role_policy = data.aws_iam_policy_document.eks_assume_role_policy.json
+  assume_role_policy    = data.aws_iam_policy_document.eks_assume_role_policy.json
   permissions_boundary  = aws_iam_policy.eks_permission_boundary.arn
   force_detach_policies = true // I don't think we need this?
 
