@@ -27,13 +27,6 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = true
   }
 
-  encryption_config {
-    resources = ["secrets"]
-    provider {
-      key_arn = aws_kms_key.eks_secrets.arn
-    }
-  }
-
   depends_on = [
     aws_iam_role_policy_attachment.eks,
     aws_vpc_security_group_ingress_rule.eks_cluster,
@@ -43,31 +36,6 @@ resource "aws_eks_cluster" "main" {
   tags = {
     Name : "eks"
   }
-}
-
-//
-// KMS for secrets
-//
-
-resource "aws_kms_key" "eks_secrets" {
-  description             = "EKS Secrets Encryption"
-  deletion_window_in_days = 7 // minimum possible
-  tags = {
-    Name : "k-eks-secrets"
-  }
-}
-
-data "aws_iam_policy_document" "eks_secrets" {
-  statement {
-    effect    = "Allow"
-    actions   = ["kms:DescribeKey", "kms:CreateGrant"]
-    resources = [aws_kms_key.eks_secrets.arn]
-  }
-}
-
-resource "aws_iam_policy" "eks_secrets" {
-  name_prefix = "${local.cluster_name}-eks-secrets-"
-  policy      = data.aws_iam_policy_document.eks_secrets.json
 }
 
 //
@@ -111,8 +79,7 @@ resource "aws_iam_role_policy_attachment" "eks" {
   for_each = {
     AmazonEKSClusterPolicy         = "${local.iam_role_policy_prefix}/AmazonEKSClusterPolicy",
     AmazonEKSVPCResourceController = "${local.iam_role_policy_prefix}/AmazonEKSVPCResourceController",
-    restrict_eni_access            = aws_iam_policy.restrict_eni_access.arn
-    EKSKMS                         = aws_iam_policy.eks_secrets.arn,
+    restrict_eni_access            = aws_iam_policy.restrict_eni_access.arn,
   }
 
   policy_arn = each.value
