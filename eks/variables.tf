@@ -4,6 +4,10 @@ variable "region" {
   default = "us-east-2"
 }
 
+variable "aws_account_id" {
+  type = string
+}
+
 variable "group" {
   type    = string
   default = "test-deployment"

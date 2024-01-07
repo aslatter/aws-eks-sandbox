@@ -14,14 +14,22 @@ Links:
 
 Create a file `terraform.tfvar` in the root of your checkout
 of this repo. By default, none of the provisioed resources
-admit traffic from the public internete. You'll need to modify
-the variables `public_access_cidrs` (and optionally
-`public_access_cidrs_ipv6`) to admit any traffic.
+admit traffic from the public internete.
+
+Variables you'll need to modify:
+* `aws_account_id` - the account you wish to create the cluster
+  in
+* `public_access_cidrs` - IPv4 addresses to allow access from.
+  This applies to both the Kubernetes API endpoint as well as
+  the load-balancer in front of the cluster.
+* `public_access_cidrs_ipv6` - similar to `public_access_cidrs`
+  except for IPv6 addresses (note that the Kubernetes API endpoint
+  only accepts IPv4 traffic).
 
 The *justfile* coordinates the deployment steps:
 
 * `just` will build out a new cluster
-+ `just kubeconfig` will *replace* `~/.kube/config` with
+* `just kubeconfig` will *replace* `~/.kube/config` with
   configuration appropriate for connecting to the new
   cluster.
 * `just clean` will tear it down
