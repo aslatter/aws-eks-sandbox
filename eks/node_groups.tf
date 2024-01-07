@@ -33,7 +33,7 @@ locals {
 resource "aws_launch_template" "node" {
 
   // assign to node sg (this also becomes the pod sg)
-  vpc_security_group_ids = aws_security_group.eks_nodes.id
+  vpc_security_group_ids = [aws_security_group.eks_nodes.id]
 
   // require imdsv2, set hop-limit to 1. this prevents
   // pods not using host-networking from accessing IMDS.
