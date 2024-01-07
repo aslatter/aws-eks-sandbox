@@ -87,6 +87,28 @@ resource "aws_iam_role_policy_attachment" "eks" {
 }
 
 //
+// Add-ons
+//
+
+resource "aws_eks_addon" "vpc-cni" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name   = "vpc-cni"
+  // TODO - should be a variable
+  addon_version = "v1.16.0-eksbuild.1"
+
+  // note! this is using IRSA, not EKS Pod Identities (so requires
+  // OIDC-trust-setup).
+  //
+  // https://docs.aws.amazon.com/eks/latest/userguide/managing-add-ons.html
+  service_account_role_arn = aws_iam_role.eks_irsa_role["cni"].arn
+
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_iam_role_policy_attachment.eks_irsa]
+}
+
+//
 // IAM Cluster Auth
 //
 
