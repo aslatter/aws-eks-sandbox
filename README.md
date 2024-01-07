@@ -26,12 +26,6 @@ The *justfile* coordinates the deployment steps:
   cluster.
 * `just clean` will tear it down
 
-If you make some change which requires re-creating the EKS
-control-plane, the apply will fail because the cluster node-
-groups still exist.
-
-To delete just the node-groups run `just cleanup-nodes`.
-
 I haven't put too much though into the structure of the
 various terraform outputs, sorry.
 
@@ -46,8 +40,7 @@ This project has been broken-up into multiple terraform
 sub-projects:
 
 - init: generate random labels and names for things
-- eks: provision networking and the EKS control-plane
-- nodes: provision EKS node-groups
+- eks: provision networking, the EKS control-plane, and managed node-group
 - k8s: install "core" k8s components
 
 # Details

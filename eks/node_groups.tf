@@ -33,7 +33,7 @@ locals {
 resource "aws_launch_template" "node" {
 
   // assign to node sg (this also becomes the pod sg)
-  vpc_security_group_ids = [local.nodes_security_group_id]
+  vpc_security_group_ids = aws_security_group.eks_nodes.id
 
   // require imdsv2, set hop-limit to 1. this prevents
   // pods not using host-networking from accessing IMDS.
@@ -69,7 +69,7 @@ resource "aws_eks_node_group" "main" {
 
   cluster_name  = local.cluster_name
   node_role_arn = aws_iam_role.node[each.key].arn
-  subnet_ids    = local.nodes_subnet_ids
+  subnet_ids    = aws_subnet.private[*].id
 
   scaling_config {
     min_size     = each.value.min_size
@@ -89,7 +89,7 @@ resource "aws_eks_node_group" "main" {
 
   // the community module threads this through a
   // time_sleep resource
-  version = local.k8s_version
+  version = aws_eks_cluster.main.version
 
   instance_types = each.value.instance_types
 
@@ -115,11 +115,8 @@ resource "aws_eks_node_group" "main" {
 
   depends_on = [
     aws_iam_role_policy_attachment.node,
+    aws_eks_addon.vpc-cni,
   ]
-}
-
-locals {
-  iam_role_policy_prefix = "arn:${data.aws_partition.current.partition}:iam::aws:policy"
 }
 
 data "aws_iam_policy_document" "node_assume_role_policy" {
@@ -144,7 +141,7 @@ resource "aws_iam_role" "node" {
   description = "Node role for ${each.value.name}"
 
   assume_role_policy    = data.aws_iam_policy_document.node_assume_role_policy.json
-  permissions_boundary  = local.permission_bounary_policy_arn
+  permissions_boundary  = aws_iam_policy.eks_permission_boundary.arn
   force_detach_policies = true
 
   tags = {
