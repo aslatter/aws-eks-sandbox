@@ -37,7 +37,7 @@ resource "helm_release" "ingress_controller" {
         port : 9443
       }
 
-      recplicaCount : 2
+      replicaCount : 2
     }
   })]
 }

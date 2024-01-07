@@ -35,7 +35,7 @@ resource "aws_security_group" "nlb" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name : "sg-eks-nodes"
+    Name : "sg-nlb"
   }
 
   lifecycle {
