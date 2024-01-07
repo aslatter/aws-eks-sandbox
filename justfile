@@ -1,5 +1,5 @@
 
-default: k8s2
+default: k8s
 clean: clean-init
 
 init:
@@ -14,9 +14,9 @@ nodes: init
     terraform -chdir=nodes init
     terraform -chdir=nodes apply -var-file=../terraform.tfvars -compact-warnings
 
-k8s2: nodes
-    terraform -chdir=k8s2 init
-    terraform -chdir=k8s2 apply -var-file=../terraform.tfvars -compact-warnings
+k8s: nodes
+    terraform -chdir=k8s init
+    terraform -chdir=k8s apply -var-file=../terraform.tfvars -compact-warnings
 
 clean-init: clean-eks
     terraform -chdir=init destroy -var-file=../terraform.tfvars -compact-warnings
@@ -24,11 +24,11 @@ clean-init: clean-eks
 clean-eks: clean-nodes
     terraform -chdir=eks destroy -var-file=../terraform.tfvars -compact-warnings
 
-clean-nodes: clean-k8s2
+clean-nodes: clean-k8s
     terraform -chdir=nodes destroy -var-file=../terraform.tfvars -compact-warnings
 
-clean-k8s2:
-    terraform -chdir=k8s2 destroy -var-file=../terraform.tfvars -compact-warnings
+clean-k8s:
+    terraform -chdir=k8s destroy -var-file=../terraform.tfvars -compact-warnings
 
 kubeconfig:
     terraform -chdir=eks output -json eks | jq -r .kubeconfig > ~/.kube/config

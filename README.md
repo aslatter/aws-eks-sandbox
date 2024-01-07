@@ -48,7 +48,7 @@ sub-projects:
 - init: generate random labels and names for things
 - eks: provision networking and the EKS control-plane
 - nodes: provision EKS node-groups
-- k8s2: install "core" k8s components
+- k8s: install "core" k8s components
 
 # Details
 
