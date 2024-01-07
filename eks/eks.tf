@@ -49,7 +49,7 @@ data "aws_iam_policy_document" "eks_assume_role_policy" {
 
     principals {
       type        = "Service"
-      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
+      identifiers = ["eks.amazonaws.com "]
     }
   }
 }

@@ -37,7 +37,7 @@ data "tls_certificate" "eks_oidc_issuer" {
 resource "aws_iam_openid_connect_provider" "eks_irsa" {
   url             = local.eks_oidc_issuer
   thumbprint_list = [data.tls_certificate.eks_oidc_issuer.certificates[0].sha1_fingerprint]
-  client_id_list  = ["sts.${data.aws_partition.current.dns_suffix}"]
+  client_id_list  = ["sts.amazonaws.com "]
 }
 
 // allow assuming a role based on external OIDC credentials.
@@ -63,7 +63,7 @@ data "aws_iam_policy_document" "eks_irsa_trust_policy" {
     condition {
       test     = "StringEquals"
       variable = "${local.eks_oidc_issuer_name}:aud"
-      values   = ["sts.${data.aws_partition.current.dns_suffix}"]
+      values   = ["sts.amazonaws.com "]
     }
   }
 }
