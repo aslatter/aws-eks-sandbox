@@ -30,6 +30,10 @@ locals {
   }
 }
 
+// grab default tags we supplied to provider to we
+// can pass them in to the launch-template
+data "aws_default_tags" "tags" {}
+
 resource "aws_launch_template" "node" {
 
   // assign to node sg (this also becomes the pod sg)
@@ -51,9 +55,7 @@ resource "aws_launch_template" "node" {
     for_each = ["instance", "volume", "network-interface"]
     content {
       resource_type = tag_specifications.value
-      tags = {
-        "group" = local.group_name
-      }
+      tags = data.aws_default_tags.tags.tags
     }
   }
 
