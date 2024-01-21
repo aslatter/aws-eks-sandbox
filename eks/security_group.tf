@@ -59,8 +59,6 @@ locals {
       description = "node-to-node traffic"
       type        = "ingress"
       protocol    = "all"
-      # from_port   = 0
-      # to_port     = 0
       referenced_security_group = "self"
     },
     "ingress_cluster_tls" = {
@@ -103,24 +101,18 @@ locals {
       description = "allow all from nlb"
       type        = "ingress"
       protocol    = "-1"
-      # to_port               = 0
-      # from_port             = 0
       referenced_security_group = "nlb"
     }
     "egress_ipv4" = {
       description = "allow egress"
       type        = "egress"
       protocol    = "-1"
-      # to_port          = 0
-      # from_port        = 0
       cidr_ipv4 = "0.0.0.0/0"
     }
     "egress_ipv6" = {
       description = "allow egress"
       type        = "egress"
       protocol    = "-1"
-      # to_port          = 0
-      # from_port        = 0
       cidr_ipv6 = "::/0"
     }
   }
