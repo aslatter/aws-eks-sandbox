@@ -10,6 +10,16 @@ Links:
 * https://github.com/terraform-aws-modules/terraform-aws-vpc
 * https://github.com/terraform-aws-modules/terraform-aws-eks
 
+Other important resources:
+* [VPC User Guide](https://docs.aws.amazon.com/vpc/latest/userguide/index.html)
+* [EKS User Guide](https://docs.aws.amazon.com/eks/latest/userguide/index.html)
+* [EKS Best Practices Guide](https://aws.github.io/aws-eks-best-practices/)
+
+Other important reference material:
+* [Network Load Balancer User Guide](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/index.html)
+* [All AWS IAM Documentation](https://docs.aws.amazon.com/iam/)
+* [IAM actions, resources, and condition keys for all services](https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html)
+
 # Using
 
 Create a file `terraform.tfvar` in the root of your checkout
@@ -41,6 +51,14 @@ This is not a "production ready" EKS deployment, as the "public
 access" variables control access to both the front-end load-balancer
 and the EKS control-plane. Also I have done very little testing
 & tuning - this repo was created as a learning exercise.
+
+# What's missing
+
+* TLS (edge or in-cluster)
+* DNS
+* CSI
+* Node-local DNS
+* Node OS-image updgrading
 
 # Structure
 
