@@ -323,9 +323,12 @@ resource "aws_lb_target_group" "nlb_http" {
   // preserve client ip?
 
   health_check {
-    protocol          = "TCP"
-    healthy_threshold = 2
-    interval          = 10 // seconds
+    // leave 'port' unspecified to default to the traffic-port
+    protocol            = "TCP"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 10 // seconds
+    interval            = 10 // seconds
   }
 
   tags = {
