@@ -11,11 +11,11 @@ resource "kubernetes_namespace" "ingress_controller" {
 
 resource "helm_release" "ingress_controller" {
   name = "nginx-ingress"
+  namespace  = kubernetes_namespace.ingress_controller.metadata[0].name
 
   repository = "https://kubernetes.github.io/ingress-nginx"
   chart      = "ingress-nginx"
   version    = var.nginx_ingress_chart_version
-  namespace  = kubernetes_namespace.ingress_controller.metadata[0].name
 
   // ingress pods don't become ready until the NLB considers them
   // healthy, which can take up to 4 minutes. I'm too lazy for that.

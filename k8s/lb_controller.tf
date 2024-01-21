@@ -5,12 +5,11 @@
 // use its CRDs to link services to existing NLBs.
 resource "helm_release" "lb_controller" {
   name = "aws-load-balancer-controller"
+  namespace = "kube-system"
 
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   version    = var.lb_controller_chart_version
-
-  namespace = "kube-system"
 
   values = [jsonencode({
     clusterName : local.cluster_name
