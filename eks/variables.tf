@@ -73,7 +73,7 @@ variable "eks_k8s_version" {
 
 variable "eks_cni_addon_version" {
   type    = string
-  # https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
+  // https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
   default = "v1.16.0-eksbuild.1"
 }
 
