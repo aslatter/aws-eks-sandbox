@@ -302,6 +302,10 @@ resource "aws_lb_listener" "nlb_http" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.nlb_http.arn
   }
+
+  tags = {
+    Name : "nlb-listener-http"
+  }
 }
 
 resource "aws_lb_target_group" "nlb_http" {
@@ -322,6 +326,10 @@ resource "aws_lb_target_group" "nlb_http" {
     protocol          = "TCP"
     healthy_threshold = 2
     interval          = 10 // seconds
+  }
+
+  tags = {
+    Name : "nlb-tg-http"
   }
 
   lifecycle {
