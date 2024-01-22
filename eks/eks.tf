@@ -91,8 +91,8 @@ resource "aws_iam_role_policy_attachment" "eks" {
 //
 
 resource "aws_eks_addon" "vpc-cni" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "vpc-cni"
+  cluster_name  = aws_eks_cluster.main.name
+  addon_name    = "vpc-cni"
   addon_version = var.eks_cni_addon_version
 
   // note! this is using IRSA, not EKS Pod Identities (so requires

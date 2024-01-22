@@ -56,9 +56,9 @@ resource "aws_vpc_security_group_ingress_rule" "eks_cluster" {
 locals {
   node_sg_rules = {
     "ingress_self" = {
-      description = "node-to-node traffic"
-      type        = "ingress"
-      protocol    = "all"
+      description               = "node-to-node traffic"
+      type                      = "ingress"
+      protocol                  = "all"
       referenced_security_group = "self"
     },
     "ingress_cluster_tls" = {
@@ -98,22 +98,22 @@ locals {
       // the nlb, and the pods can choose to serve from an arbitrary
       // port, there really aren't restrictions we can reasonably
       // apply here.
-      description = "allow all from nlb"
-      type        = "ingress"
-      protocol    = "-1"
+      description               = "allow all from nlb"
+      type                      = "ingress"
+      protocol                  = "-1"
       referenced_security_group = "nlb"
     }
     "egress_ipv4" = {
       description = "allow egress"
       type        = "egress"
       protocol    = "-1"
-      cidr_ipv4 = "0.0.0.0/0"
+      cidr_ipv4   = "0.0.0.0/0"
     }
     "egress_ipv6" = {
       description = "allow egress"
       type        = "egress"
       protocol    = "-1"
-      cidr_ipv6 = "::/0"
+      cidr_ipv6   = "::/0"
     }
   }
 }

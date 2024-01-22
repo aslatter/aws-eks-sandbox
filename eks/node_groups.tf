@@ -55,7 +55,7 @@ resource "aws_launch_template" "node" {
     for_each = ["instance", "volume", "network-interface"]
     content {
       resource_type = tag_specifications.value
-      tags = data.aws_default_tags.tags.tags
+      tags          = data.aws_default_tags.tags.tags
     }
   }
 
