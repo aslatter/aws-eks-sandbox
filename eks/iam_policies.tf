@@ -120,7 +120,6 @@ data "aws_iam_policy_document" "permission_boundary" {
 
       // stuff I probably want to use
       "s3:*",
-      "ebs:*",
       "dynamodb:*",
       "sqs:*",
       "events:*"
@@ -129,6 +128,20 @@ data "aws_iam_policy_document" "permission_boundary" {
     condition {
       test     = "StringEquals"
       variable = "aws:ResourceTag/group"
+      values   = ["$${aws:PrincipalTag/group}"]
+    }
+  }
+  statement {
+    // some ec2 resources specify use "ec2:ResourceTag" instead
+    // of "aws:ResourceTag"
+    effect = "Allow"
+    actions = [
+      "ec2:*",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/group"
       values   = ["$${aws:PrincipalTag/group}"]
     }
   }
@@ -161,6 +174,21 @@ data "aws_iam_policy_document" "permission_boundary" {
     effect    = "Allow"
     actions   = ["ec2:*"]
     resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:network-interface/*"]
+  }
+  statement {
+    // the CSI controller doesn't include tags in the 'CreateVolume' call
+    // for some reason, so we need to allow all volume-creation and tagging.
+    // We still restrict other operations like volume-attach and detach.
+    //
+    // TODO - There might be some clevel way to prevent changing "protected"
+    // tags on volumes from different logical deployments, maybe with an
+    // additional Deny policy.
+    effect = "Allow"
+    actions = [
+      "ec2:CreateVolume",
+      "ec2:CreateTags"
+    ]
+    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:volume/*"]
   }
 }
 

@@ -21,6 +21,13 @@ locals {
         lb_controler : aws_iam_policy.lb_controler.arn
       }
     }
+    csi : {
+      namespace : "kube-system"
+      serviceAccount : "ebs-csi-controller-sa"
+      policyArns : {
+        "csi_policy" : "${local.iam_role_policy_prefix}/service-role/AmazonEBSCSIDriverPolicy"
+      }
+    }
   }
 }
 

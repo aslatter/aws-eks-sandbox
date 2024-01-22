@@ -77,6 +77,11 @@ variable "eks_cni_addon_version" {
   default = "v1.16.0-eksbuild.1"
 }
 
+variable "eks_csi_addon_version" {
+  type    = string
+  default = "v1.26.1-eksbuild.1"
+}
+
 variable "public_access_cidrs" {
   type        = list(string)
   default     = []

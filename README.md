@@ -56,7 +56,6 @@ and the EKS control-plane. Also I have done very little testing
 
 * TLS (edge or in-cluster)
 * DNS
-* CSI
 * Node-local DNS
 * Node OS-image updgrading
 
