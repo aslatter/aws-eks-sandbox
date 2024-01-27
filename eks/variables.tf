@@ -68,7 +68,7 @@ variable "vpc_ipv6_intra_subnets" {
 }
 variable "eks_k8s_version" {
   type    = string
-  default = "1.28"
+  default = "1.29"
 }
 
 variable "eks_cni_addon_version" {
@@ -79,7 +79,7 @@ variable "eks_cni_addon_version" {
 
 variable "eks_csi_addon_version" {
   type    = string
-  default = "v1.26.1-eksbuild.1"
+  default = "v1.27.0-eksbuild.1"
 }
 
 variable "public_access_cidrs" {

@@ -12,5 +12,5 @@ variable "lb_controller_chart_version" {
 
 variable "nginx_ingress_chart_version" {
   type    = string
-  default = "4.9.0"
+  default = "4.9.1"
 }
