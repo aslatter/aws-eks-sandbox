@@ -28,6 +28,13 @@ locals {
         "csi_policy" : "${local.iam_role_policy_prefix}/service-role/AmazonEBSCSIDriverPolicy"
       }
     }
+    cas : {
+      namespace : "kube-system"
+      serviceAccount : "cluster-autoscaler"
+      policyArns : {
+        cas : aws_iam_policy.cluster_autoscaler.arn
+      }
+    }
   }
 }
 

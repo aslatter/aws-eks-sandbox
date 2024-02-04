@@ -99,6 +99,47 @@ resource "aws_iam_policy" "lb_controler" {
   policy = data.aws_iam_policy_document.lb_controler.json
 }
 
+data "aws_iam_policy_document" "cluster_autoscaler" {
+  statement {
+    // read-only stuff
+    effect = "Allow"
+    actions = [
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeLaunchConfigurations",
+      "autoscaling:DescribeScalingActivities",
+      "autoscaling:DescribeTags",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DescribeLaunchTemplateVersions",
+      "eks:DescribeNodegroup"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    effect = "Allow"
+    actions = [
+      "autoscaling:SetDesiredCapacity",
+      "autoscaling:TerminateInstanceInAutoScalingGroup",
+      "ec2:DescribeImages",
+      "ec2:GetInstanceTypesFromInstanceRequirements",
+    ]
+    resources = ["*"]
+    // scope to the tags EKS sets for us for our cluster
+    // there doesn't seem to be a way with TF to easily get
+    // tags onto the ASGs EKS creates for us.
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/k8s.io/cluster-autoscaler/${local.cluster_name}"
+      values   = ["owned"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "cluster_autoscaler" {
+  name   = "cluster_autoscaler-${local.entropy}"
+  policy = data.aws_iam_policy_document.cluster_autoscaler.json
+}
+
 //
 // Permission boundary for roles used in-cluster
 //
@@ -117,6 +158,14 @@ data "aws_iam_policy_document" "permission_boundary" {
       "eks-auth:*",
       "elasticloadbalancing:*",
       "kms:*",
+
+      // Not all action matching this filter work with tag-constraints,
+      // but the ones we currently use do.
+      //
+      // Normally I would advocate for keeping permission-boundaries
+      // general, but here I'm scoping eks access to read-only out
+      // of an abundance of caution.
+      "eks:Describe*",
 
       // stuff I probably want to use
       "s3:*",
@@ -189,6 +238,17 @@ data "aws_iam_policy_document" "permission_boundary" {
       "ec2:CreateTags"
     ]
     resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:volume/*"]
+  }
+  statement {
+    // EKS doesn't provide a way to propagate tags into the ASG itself from
+    // a managed-node-group, so we can't inject out standard tags. In the actual
+    // policies we apply we scope things down.
+    effect = "Allow"
+    actions = [
+      "autoscaling:SetDesiredCapacity",
+      "autoscaling:TerminateInstanceInAutoScalingGroup",
+    ]
+    resources = ["*"]
   }
 }
 

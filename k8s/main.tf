@@ -27,6 +27,7 @@ data "terraform_remote_state" "eks" {
 }
 
 locals {
+  aws_region                = data.terraform_remote_state.eks.outputs.info.region
   cluster_name              = data.terraform_remote_state.init.outputs.name
   cluster_endpoint          = data.terraform_remote_state.eks.outputs.eks.endpoint
   cluster_ca_certificate    = data.terraform_remote_state.eks.outputs.eks.cluster_ca_certificate
