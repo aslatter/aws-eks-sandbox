@@ -27,6 +27,10 @@ resource "aws_iam_policy" "cni_ipv6_policy" {
   policy = data.aws_iam_policy_document.cni_ipv6_policy.json
 }
 
+// We attach this policy to both the CNI-controller and the EKS control-plane
+// itself. AWS IAM does support conditionally-allowing access to ENIs based
+// on resource-tags, but EKS doesn't give us any way to apply such tags, so
+// instead we throw in a "deny" policy based on ENI-subnet.
 data "aws_iam_policy_document" "restrict_eni_access" {
   // scope ENI actions to the private subnets.
   statement {
@@ -54,6 +58,9 @@ resource "aws_iam_policy" "restrict_eni_access" {
 // This is extremely cut-down from the above policy, as we only
 // wish to use the lb-controller to register back-ends with an existing
 // NLB (as opposed to completely manage NLBs and ALBs on our behalf).
+//
+// Evaluating/creating a policy that would allow creating load-balancers
+// from a principle running in the cluster seems like it would be hard.
 data "aws_iam_policy_document" "lb_controler" {
   statement {
     effect = "Allow"
@@ -99,6 +106,11 @@ resource "aws_iam_policy" "lb_controler" {
   policy = data.aws_iam_policy_document.lb_controler.json
 }
 
+// Policy we attach to the cluster-autoscaler role. It
+// operates on ASGs. We scope access based on EKS-generated
+// resource-tags, rather than the tags we use in our permission
+// boundary, because EKS doesn't give us any control over
+// tagging ASGs.
 data "aws_iam_policy_document" "cluster_autoscaler" {
   statement {
     // read-only stuff
@@ -147,16 +159,40 @@ resource "aws_iam_policy" "cluster_autoscaler" {
 // a principal may have - it does not actually grant
 // any permissions.
 //
+// We need to keep things fairly general when possible,
+// as the JSON policy is limitted to 6,144 characters
+// (not including whitespace).
+//
 
 data "aws_iam_policy_document" "permission_boundary" {
   statement {
-    // allow accessing tagged resources
+    // example of stuff we want to allow principles running in cluster
+    // to generally have access to. These resources don't support coditional
+    // access based on resource-tags. We could invent some alternate
+    // scoping-mechanism, like name-prefix or similar.
+    //
+    // because we wouldn't be using off-the-shelf IAM policies for these,
+    // I think a strict permission-boundary is less critical.
     effect = "Allow"
     actions = [
-      // core infrastructure needed to provision EKS
+      "s3:*",
+      "dynamodb:*",
+      "sqs:*",
+      "events:*"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    // Where a resource support conditionall-access based on
+    // resource tag, we can scope access to this-deployment's
+    // resources.
+    effect = "Allow"
+    actions = [
       "ec2:*",
       "eks-auth:*",
       "elasticloadbalancing:*",
+      // not currently used - would be used to add a layer of
+      // encryption onto secrets in etcd.
       "kms:*",
 
       // Not all action matching this filter work with tag-constraints,
@@ -166,12 +202,6 @@ data "aws_iam_policy_document" "permission_boundary" {
       // general, but here I'm scoping eks access to read-only out
       // of an abundance of caution.
       "eks:Describe*",
-
-      // stuff I probably want to use
-      "s3:*",
-      "dynamodb:*",
-      "sqs:*",
-      "events:*"
     ]
     resources = ["*"]
     condition {
