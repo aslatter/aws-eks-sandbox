@@ -14,6 +14,9 @@ resource "helm_release" "lb_controller" {
   values = [jsonencode({
     clusterName : local.cluster_name
     vpcId : data.terraform_remote_state.eks.outputs.vpc.vpc_id
+
+    enableEndpointSlices: true
+
     // recommended for use with AWS CNI
     defaultTargetType : "ip"
 
