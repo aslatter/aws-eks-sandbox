@@ -1,4 +1,5 @@
 
+// https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html
 // https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html
 
 // SG we apply to EKS-managed control-plane NICs it installs
@@ -29,6 +30,7 @@ resource "aws_security_group" "eks_nodes" {
   }
 }
 
+// SG we apply to front-end load-balancer
 resource "aws_security_group" "nlb" {
   description = "Network load balancer security group"
 
@@ -43,7 +45,7 @@ resource "aws_security_group" "nlb" {
   }
 }
 
-// allow ingress from nodes
+// allow ingress into control-plane from nodes
 resource "aws_vpc_security_group_ingress_rule" "eks_cluster" {
   security_group_id = aws_security_group.eks_cluster.id
 
@@ -53,6 +55,7 @@ resource "aws_vpc_security_group_ingress_rule" "eks_cluster" {
   to_port                      = "443"
 }
 
+// node-SG rules.
 locals {
   node_sg_rules = {
     "ingress_self" = {
@@ -86,7 +89,7 @@ locals {
       referenced_security_group = "cluster"
     }
     ingress_lb_controller_webhook = {
-      description               = "allow reaching lb controller webhook"
+      description               = "allow reaching lb controller webhook from control plane"
       type                      = "ingress"
       protocol                  = "tcp"
       from_port                 = 9443
@@ -97,7 +100,9 @@ locals {
       // because we are registering the pod-ips directly with
       // the nlb, and the pods can choose to serve from an arbitrary
       // port, there really aren't restrictions we can reasonably
-      // apply here.
+      // apply here. This could be restricted to the container-ports
+      // of our ingress controller (but nothing stops other pods from
+      // using those ports).
       description               = "allow all from nlb"
       type                      = "ingress"
       protocol                  = "-1"
@@ -118,6 +123,7 @@ locals {
   }
 }
 
+// apply the above node rules
 resource "aws_vpc_security_group_ingress_rule" "eks_nodes" {
   // the commnity eks module is a lot more restictive in
   // its 'nodes' security-group. here, we allow all node->node
@@ -146,6 +152,7 @@ resource "aws_vpc_security_group_ingress_rule" "eks_nodes" {
   )
 }
 
+// apply the above node rules
 resource "aws_vpc_security_group_egress_rule" "eks_nodes" {
   // the commnity eks module is a lot more restictive in
   // its 'nodes' security-group. here, we allow all node->node
@@ -172,7 +179,12 @@ resource "aws_vpc_security_group_egress_rule" "nlb_nodes" {
   referenced_security_group_id = aws_security_group.eks_nodes.id
 }
 
-// this is a bit tedious ...
+// nlb-ingress rules. we wish to allow 80 and 443, udp and tcp, ipv4
+// and ipv6. NLBs with an "ip" target-type don't actually support UDP,
+// but we can dream.
+//
+// I couldn't think of a better way to do this than brute-force, so
+// it's a bit tedious.
 
 resource "aws_vpc_security_group_ingress_rule" "nlb_https_ipv4_tcp" {
   count = length(var.public_access_cidrs)

@@ -1,6 +1,13 @@
 
 // https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
 
+// An alternative is https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html,
+// however we would still need IRSA for EKS managed addons (and other off-the-shelf services
+// which don't yet support pod-identities), so we may as well just use IRSA.
+//
+// Pod-identities are applied without needing the application-developer to modify their
+// Kubernetes yamls, so it might be worth running both in parallel at some point.
+
 locals {
   // map of k8s service-accounts and the IAM policies we
   // would like to grant them access to.

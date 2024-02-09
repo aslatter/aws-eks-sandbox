@@ -102,12 +102,12 @@ resource "aws_route" "public_internet_gateway_ipv6" {
 
 // private subnet
 //
-// the pirvate subnet will hold our k8s nodes.
+// the private subnet will hold our k8s nodes.
 // direct internet access is not allowed, however we do
 // have a route to a NAT-gateway for internet egress.
 //
 // we have as many subnets as we wish to have AZs for
-// out k8s nodes. We also provision a separate NAT
+// our k8s nodes. We also provision a separate NAT
 // gateway per AZ.
 //
 // We also create a route to the "egress only internet
@@ -223,6 +223,10 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "main" {
   count = var.node_az_count
 
+  // we assign IPv4 addresses to the ngw per AZ. There is no
+  // way to assign IPv6 - they come out of our VPC-allocation.
+  // Presumably an external entity would apply firewall rules
+  // to the entire /64.
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
 
@@ -231,6 +235,8 @@ resource "aws_nat_gateway" "main" {
   }
 }
 
+// internet egress for ipv6 traffic within private
+// subnet (nat gateway only supports ipv4 endpoints).
 resource "aws_egress_only_internet_gateway" "main" {
   count = var.ipv6_enable ? 1 : 0
 
@@ -280,6 +286,10 @@ resource "aws_lb" "nlb" {
   security_groups    = [aws_security_group.nlb.id]
   ip_address_type    = var.ipv6_enable ? "dualstack" : null
 
+  // we assign IPv4 addresses to the lb per AZ. There is no
+  // way to assign IPv6 - they come out of our VPC-allocation.
+  // Presumably an external entity would apply firewall rules
+  // to the entire /64.
   dynamic "subnet_mapping" {
     for_each = range(var.node_az_count)
     content {

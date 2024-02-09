@@ -8,9 +8,20 @@ variable "aws_account_id" {
   type = string
 }
 
-variable "group" {
+variable "eks_k8s_version" {
   type    = string
-  default = "test-deployment"
+  default = "1.29"
+}
+
+variable "eks_cni_addon_version" {
+  type = string
+  // https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
+  default = "v1.16.0-eksbuild.1"
+}
+
+variable "eks_csi_addon_version" {
+  type    = string
+  default = "v1.27.0-eksbuild.1"
 }
 
 variable "cluster_az_count" {
@@ -65,21 +76,6 @@ variable "vpc_intra_subnets" {
 variable "vpc_ipv6_intra_subnets" {
   type    = list(number)
   default = [2, 3]
-}
-variable "eks_k8s_version" {
-  type    = string
-  default = "1.29"
-}
-
-variable "eks_cni_addon_version" {
-  type = string
-  // https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
-  default = "v1.16.0-eksbuild.1"
-}
-
-variable "eks_csi_addon_version" {
-  type    = string
-  default = "v1.27.0-eksbuild.1"
 }
 
 variable "public_access_cidrs" {
