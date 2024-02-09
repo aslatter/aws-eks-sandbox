@@ -66,9 +66,6 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name : "subnet-public-${local.azs[count.index]}"
-
-    "kubernetes.io/cluster/${local.cluster_name}" : "shared"
-    "kubernetes.io/role/elb" : 1
   }
 }
 
