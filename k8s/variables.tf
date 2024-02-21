@@ -1,6 +1,6 @@
 
 variable "assume_role" {
-  type = string
+  type        = string
   description = "IAM role to assume when calling AWS APIs"
 }
 
@@ -20,11 +20,11 @@ variable "nginx_ingress_chart_version" {
 }
 
 variable "cluster_autoscaler_chart_version" {
-  type = string
+  type    = string
   default = "9.34.1"
 }
 
 variable "cluster_autoscaler_image_tag" {
-  type = string
+  type    = string
   default = "v1.29.0"
 }

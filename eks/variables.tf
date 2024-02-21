@@ -1,16 +1,16 @@
 
 variable "region" {
-  type    = string
+  type = string
 }
 
 variable "assume_role" {
-  type = string
+  type        = string
   description = "IAM role to assume when calling AWS APIs"
 }
 
 variable "iam_permission_boundary" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "Permission-boundary to assign to created IAM roles"
 }
 
