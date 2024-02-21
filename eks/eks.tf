@@ -27,6 +27,10 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = true
   }
 
+  access_config {
+    authentication_mode = "API"
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.eks,
     aws_vpc_security_group_ingress_rule.eks_cluster,
@@ -35,6 +39,26 @@ resource "aws_eks_cluster" "main" {
 
   tags = {
     Name : "eks"
+  }
+}
+
+//
+// Grant access to cluster
+//
+
+// I would have expected this to have been set up for use,
+// at least for the user which created the cluster?
+resource "aws_eks_access_entry" "main" {
+  cluster_name = aws_eks_cluster.main.name
+  principal_arn = var.assume_role
+}
+
+resource "aws_eks_access_policy_association" "main" {
+  cluster_name = aws_eks_cluster.main.name
+  principal_arn = var.assume_role
+  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  access_scope {
+    type = "cluster"
   }
 }
 
