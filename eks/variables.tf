@@ -1,7 +1,17 @@
 
 variable "region" {
   type    = string
-  default = "us-east-2"
+}
+
+variable "assume_role" {
+  type = string
+  description = "IAM role to assume when calling AWS APIs"
+}
+
+variable "iam_permission_boundary" {
+  type = string
+  default = null
+  description = "Permission-boundary to assign to created IAM roles"
 }
 
 variable "aws_account_id" {

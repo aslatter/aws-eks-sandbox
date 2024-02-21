@@ -27,8 +27,10 @@ of this repo. By default, none of the provisioed resources
 admit traffic from the public internete.
 
 Variables you'll need to modify:
+* `assume_role` - ARN of IAM Roles to assume when calling AWS
+  APIs (inlcuding the Kubernetes API endpoint).
 * `aws_account_id` - the account you wish to create the cluster
-  in
+  in.
 * `public_access_cidrs` - IPv4 addresses to allow access from.
   This applies to both the Kubernetes API endpoint as well as
   the load-balancer in front of the cluster.

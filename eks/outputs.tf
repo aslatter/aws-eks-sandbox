@@ -7,8 +7,6 @@ output "info" {
     }
 
     region = var.region
-
-    permission_bounary_policy_arn = aws_iam_policy.eks_permission_boundary.arn
   }
 }
 

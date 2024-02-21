@@ -26,7 +26,7 @@ locals {
             apiVersion : "client.authentication.k8s.io/v1beta1",
             // TODO - we can pass roles and profiles here
             command : "aws",
-            args : ["--region", var.region, "eks", "get-token", "--cluster-name", aws_eks_cluster.main.name, "--output", "json"]
+            args : ["--region", var.region, "eks", "get-token", "--role-arn", var.assume_role, "--cluster-name", aws_eks_cluster.main.name, "--output", "json"]
           }
         }
       }

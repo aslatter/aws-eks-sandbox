@@ -139,11 +139,12 @@ resource "aws_iam_role" "node" {
   for_each = { for k, v in local.eks_node_groups : k => v if lookup(v, "enabled", true) }
 
   name_prefix = "${each.value.name}-"
+  path        = "/deployment/"
   // path
   description = "Node role for ${each.value.name}"
 
   assume_role_policy    = data.aws_iam_policy_document.node_assume_role_policy.json
-  permissions_boundary  = aws_iam_policy.eks_permission_boundary.arn
+  permissions_boundary  = var.iam_permission_boundary
   force_detach_policies = true
 
   tags = {

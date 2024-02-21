@@ -24,6 +24,7 @@ data "aws_iam_policy_document" "cni_ipv6_policy" {
 
 resource "aws_iam_policy" "cni_ipv6_policy" {
   name   = "cni_ipv6_policy-${local.entropy}"
+  path   = "/deployment/"
   policy = data.aws_iam_policy_document.cni_ipv6_policy.json
 }
 
@@ -47,6 +48,7 @@ data "aws_iam_policy_document" "restrict_eni_access" {
 
 resource "aws_iam_policy" "restrict_eni_access" {
   name   = "restrict_eni_access-${local.entropy}"
+  path   = "/deployment/"
   policy = data.aws_iam_policy_document.restrict_eni_access.json
 }
 
@@ -103,6 +105,7 @@ data "aws_iam_policy_document" "lb_controler" {
 
 resource "aws_iam_policy" "lb_controler" {
   name   = "lb_controler-${local.entropy}"
+  path   = "/deployment/"
   policy = data.aws_iam_policy_document.lb_controler.json
 }
 
@@ -149,140 +152,6 @@ data "aws_iam_policy_document" "cluster_autoscaler" {
 
 resource "aws_iam_policy" "cluster_autoscaler" {
   name   = "cluster_autoscaler-${local.entropy}"
+  path   = "/deployment/"
   policy = data.aws_iam_policy_document.cluster_autoscaler.json
-}
-
-//
-// Permission boundary for roles used in-cluster
-//
-// A permission-boundary defines the maximum permissions
-// a principal may have - it does not actually grant
-// any permissions.
-//
-// We need to keep things fairly general when possible,
-// as the JSON policy is limitted to 6,144 characters
-// (not including whitespace).
-//
-
-data "aws_iam_policy_document" "permission_boundary" {
-  statement {
-    // example of stuff we want to allow principles running in cluster
-    // to generally have access to. These resources don't support coditional
-    // access based on resource-tags. We could invent some alternate
-    // scoping-mechanism, like name-prefix or similar.
-    //
-    // because we wouldn't be using off-the-shelf IAM policies for these,
-    // I think a strict permission-boundary is less critical.
-    effect = "Allow"
-    actions = [
-      "s3:*",
-      "dynamodb:*",
-      "sqs:*",
-      "events:*"
-    ]
-    resources = ["*"]
-  }
-  statement {
-    // Where a resource support conditionall-access based on
-    // resource tag, we can scope access to this-deployment's
-    // resources.
-    effect = "Allow"
-    actions = [
-      "ec2:*",
-      "eks-auth:*",
-      "elasticloadbalancing:*",
-      // not currently used - would be used to add a layer of
-      // encryption onto secrets in etcd.
-      "kms:*",
-
-      // Not all action matching this filter work with tag-constraints,
-      // but the ones we currently use do.
-      //
-      // Normally I would advocate for keeping permission-boundaries
-      // general, but here I'm scoping eks access to read-only out
-      // of an abundance of caution.
-      "eks:Describe*",
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/group"
-      values   = ["$${aws:PrincipalTag/group}"]
-    }
-  }
-  statement {
-    // some ec2 resources specify use "ec2:ResourceTag" instead
-    // of "aws:ResourceTag"
-    effect = "Allow"
-    actions = [
-      "ec2:*",
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "ec2:ResourceTag/group"
-      values   = ["$${aws:PrincipalTag/group}"]
-    }
-  }
-  statement {
-    // allow read-only actions (many of these cannot be
-    // scoped to a resource).
-    effect = "Allow"
-    actions = [
-      "autoscaling:Describe*",
-      "ec2:Describe*",
-      "ec2:Get*",
-      "elasticloadbalancing:Describe*",
-
-      // read-only access to ECR
-      // see: AmazonEC2ContainerRegistryReadOnly
-      "ecr:Get*",
-      "ecr:Describe*",
-      "ecr:List*",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:BatchGetImage"
-    ]
-    resources = ["*"]
-  }
-  statement {
-    // allow working with network-interface :-/
-    // we cannot tag these. In the policies
-    // themselves we try to scope this down.
-    //
-    // https://github.com/aws/containers-roadmap/issues/1496
-    effect    = "Allow"
-    actions   = ["ec2:*"]
-    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:network-interface/*"]
-  }
-  statement {
-    // the CSI controller doesn't include tags in the 'CreateVolume' call
-    // for some reason, so we need to allow all volume-creation and tagging.
-    // We still restrict other operations like volume-attach and detach.
-    //
-    // TODO - There might be some clevel way to prevent changing "protected"
-    // tags on volumes from different logical deployments, maybe with an
-    // additional Deny policy.
-    effect = "Allow"
-    actions = [
-      "ec2:CreateVolume",
-      "ec2:CreateTags"
-    ]
-    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:volume/*"]
-  }
-  statement {
-    // EKS doesn't provide a way to propagate tags into the ASG itself from
-    // a managed-node-group, so we can't inject out standard tags. In the actual
-    // policies we apply we scope things down.
-    effect = "Allow"
-    actions = [
-      "autoscaling:SetDesiredCapacity",
-      "autoscaling:TerminateInstanceInAutoScalingGroup",
-    ]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_policy" "eks_permission_boundary" {
-  name   = "cluster_permission_boundary-${local.entropy}"
-  policy = data.aws_iam_policy_document.permission_boundary.json
 }

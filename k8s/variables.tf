@@ -1,4 +1,9 @@
 
+variable "assume_role" {
+  type = string
+  description = "IAM role to assume when calling AWS APIs"
+}
+
 variable "k8s_metrics_chart_version" {
   type    = string
   default = "3.11.0"

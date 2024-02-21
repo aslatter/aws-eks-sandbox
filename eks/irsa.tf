@@ -93,8 +93,9 @@ resource "aws_iam_role" "eks_irsa_role" {
   for_each = local.eks_pod_role_assignments
 
   name_prefix = "eks-${each.key}-"
+  path        = "/deployment/"
 
-  permissions_boundary = aws_iam_policy.eks_permission_boundary.arn
+  permissions_boundary = var.iam_permission_boundary
   // max-session duration?
 
   assume_role_policy = data.aws_iam_policy_document.eks_irsa_trust_policy[each.key].json

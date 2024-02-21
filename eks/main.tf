@@ -12,6 +12,10 @@ terraform {
 provider "aws" {
   region              = var.region
   allowed_account_ids = [var.aws_account_id]
+  assume_role {
+    role_arn     = var.assume_role
+    session_name = "deploy"
+  }
   default_tags {
     tags = {
       "group" = local.group_name
