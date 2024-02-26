@@ -105,3 +105,11 @@ variable "ipv6_enable" {
   default     = true
   description = "create dual-stack networking and use ipv6 for pod-to-pod traffic"
 }
+
+variable "dns" {
+  type = object({
+    name           = optional(string)
+    parent_zone_id = optional(string)
+  })
+  default = {}
+}
