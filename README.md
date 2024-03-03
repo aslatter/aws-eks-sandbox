@@ -121,7 +121,7 @@ I also have put no thought into the health-check timings of the NLB,
 nor have I configured the pod-readiness gate to make what I'm doing
 safe.
 
-The following demo app should be publically reachable:
+The following demo app should be publicly reachable:
 
 ```yaml
 ---
