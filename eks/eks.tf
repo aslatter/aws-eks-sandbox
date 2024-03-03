@@ -49,14 +49,14 @@ resource "aws_eks_cluster" "main" {
 // I would have expected this to have been set up for use,
 // at least for the user which created the cluster?
 resource "aws_eks_access_entry" "main" {
-  cluster_name = aws_eks_cluster.main.name
+  cluster_name  = aws_eks_cluster.main.name
   principal_arn = var.assume_role
 }
 
 resource "aws_eks_access_policy_association" "main" {
-  cluster_name = aws_eks_cluster.main.name
+  cluster_name  = aws_eks_cluster.main.name
   principal_arn = var.assume_role
-  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
   access_scope {
     type = "cluster"
   }
