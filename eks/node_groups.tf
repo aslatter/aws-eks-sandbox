@@ -2,7 +2,7 @@
 locals {
   // This could come in as a variable
   eks_node_group_defaults = {
-    ami_type = "AL2_x86_64"
+    ami_type = "AL2023_x86_64_STANDARD"
   }
   eks_node_groups = {
     one : {
@@ -41,6 +41,8 @@ resource "aws_launch_template" "node" {
 
   // require imdsv2, set hop-limit to 1. this prevents
   // pods not using host-networking from accessing IMDS.
+  //
+  // TODO - should be default now, can remove.
   metadata_options {
     http_tokens                 = "required"
     http_put_response_hop_limit = 1
