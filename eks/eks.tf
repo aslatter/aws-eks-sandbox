@@ -43,7 +43,10 @@ resource "aws_eks_cluster" "main" {
 }
 
 //
-// Grant access to cluster
+// IAM Cluster Auth
+//
+// This setup is for using IAM to access the k8s
+// API endpoint itself.
 //
 
 // unlike with IAM policies we can only grant specific
@@ -83,6 +86,8 @@ resource "aws_eks_access_policy_association" "main" {
 
 //
 // IAM
+//
+// Create IAM role for the cluster control-plane itself.
 //
 
 data "aws_iam_policy_document" "eks_assume_role_policy" {
@@ -134,6 +139,10 @@ resource "aws_iam_role_policy_attachment" "eks" {
 // Add-ons
 //
 
+// We need to install our own instance of the CNI so
+// that we have a spot to assign it a role to assume.
+// Otherwise we would need to open-up the node IMDS
+// endpoint, and grant VPC/ENI/EC2 access to the nodes.
 resource "aws_eks_addon" "vpc-cni" {
   cluster_name  = aws_eks_cluster.main.name
   addon_name    = "vpc-cni"
@@ -173,16 +182,3 @@ resource "aws_eks_addon" "csi" {
     aws_eks_node_group.main,
   ]
 }
-
-//
-// IAM Cluster Auth
-//
-
-// We can allow AWS IAM auth or OIDC auth to the EKS control-plane
-// - https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html
-// - https://docs.aws.amazon.com/eks/latest/userguide/authenticate-oidc-identity-provider.html
-//
-// (this is not IRSA)
-
-// if we want to re-build the aws-auth configmap, we will need to manaully add-in
-// the EC2 node-instance roles :-(
