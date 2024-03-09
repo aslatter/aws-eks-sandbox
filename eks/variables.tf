@@ -14,6 +14,12 @@ variable "iam_permission_boundary" {
   description = "Permission-boundary to assign to created IAM roles"
 }
 
+variable "cluster_admin_acess_permission_sets" {
+  type        = list(string)
+  default     = ["AdministratorAccess"]
+  description = "SSO permission-sets with admin-access to the k8s cluster"
+}
+
 variable "aws_account_id" {
   type = string
 }

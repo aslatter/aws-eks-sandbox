@@ -46,16 +46,35 @@ resource "aws_eks_cluster" "main" {
 // Grant access to cluster
 //
 
+// unlike with IAM policies we can only grant specific
+// principals access to the cluster. So we need to look
+// up the specific SSO principals which represent SSO
+// access.
+data "aws_iam_roles" "sso_cluster_admin_access" {
+  for_each    = toset(var.cluster_admin_acess_permission_sets)
+  name_regex  = "AWSReservedSSO_${each.value}_.*"
+  path_prefix = "/aws-reserved/sso.amazonaws.com/"
+}
+
+locals {
+  cluster_admin_access_role_arns = concat(
+    [var.assume_role],
+    flatten(values(data.aws_iam_roles.sso_cluster_admin_access)[*].arns),
+  )
+}
+
 // I would have expected this to have been set up for use,
-// at least for the user which created the cluster?
+// at least for the principal which created the cluster?
 resource "aws_eks_access_entry" "main" {
+  for_each      = toset(local.cluster_admin_access_role_arns)
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = var.assume_role
+  principal_arn = each.value
 }
 
 resource "aws_eks_access_policy_association" "main" {
+  for_each      = toset(local.cluster_admin_access_role_arns)
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = var.assume_role
+  principal_arn = each.value
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
   access_scope {
     type = "cluster"
