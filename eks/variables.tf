@@ -114,8 +114,7 @@ variable "ipv6_enable" {
 
 variable "dns" {
   type = object({
-    name           = optional(string)
-    parent_zone_id = optional(string)
+    zone_name = optional(string)
   })
   default = {}
 }

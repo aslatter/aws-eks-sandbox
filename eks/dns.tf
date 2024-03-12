@@ -1,15 +1,21 @@
 
 locals {
-  dns_enabled = var.dns.parent_zone_id != null && var.dns.name != null
+  dns_enabled = var.dns.zone_name != null
 }
 
-data "aws_route53_zone" "parent" {
-  count   = local.dns_enabled ? 1 : 0
-  zone_id = var.dns.parent_zone_id
+resource "aws_route53_zone" "main" {
+  count = local.dns_enabled ? 1 : 0
+  name  = var.dns.zone_name
 }
+
 
 locals {
-  dns_info = local.dns_enabled ? { domain : "${var.dns.name}.${data.aws_route53_zone.parent[0].name}" } : {}
+  dns_info = (local.dns_enabled ?
+    {
+      zone_id      = aws_route53_zone.main[0].zone_id
+      domain       = aws_route53_zone.main[0].name
+      name_servers = aws_route53_zone.main[0].name_servers
+  } : null)
 }
 
 output "dns_info" {
@@ -19,8 +25,8 @@ output "dns_info" {
 resource "aws_route53_record" "api_v4_base" {
   count = local.dns_enabled ? 1 : 0
 
-  zone_id = var.dns.parent_zone_id
-  name    = "api.${var.dns.name}"
+  zone_id = local.dns_info.zone_id
+  name    = "api.${var.dns.zone_name}"
   type    = "A"
 
   alias {
@@ -33,8 +39,8 @@ resource "aws_route53_record" "api_v4_base" {
 resource "aws_route53_record" "api_v6_base" {
   count = local.dns_enabled ? 1 : 0
 
-  zone_id = var.dns.parent_zone_id
-  name    = "api.${var.dns.name}"
+  zone_id = local.dns_info.zone_id
+  name    = "api.${var.dns.zone_name}"
   type    = "AAAA"
 
   alias {
@@ -47,8 +53,8 @@ resource "aws_route53_record" "api_v6_base" {
 resource "aws_route53_record" "api_v4_wildcard" {
   count = local.dns_enabled ? 1 : 0
 
-  zone_id = var.dns.parent_zone_id
-  name    = "*.api.${var.dns.name}"
+  zone_id = local.dns_info.zone_id
+  name    = "*.api.${var.dns.zone_name}"
   type    = "A"
 
   alias {
@@ -61,8 +67,8 @@ resource "aws_route53_record" "api_v4_wildcard" {
 resource "aws_route53_record" "api_v6_wildcard" {
   count = local.dns_enabled ? 1 : 0
 
-  zone_id = var.dns.parent_zone_id
-  name    = "*.api.${var.dns.name}"
+  zone_id = local.dns_info.zone_id
+  name    = "*.api.${var.dns.zone_name}"
   type    = "AAAA"
 
   alias {
