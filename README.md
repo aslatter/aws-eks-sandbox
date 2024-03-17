@@ -23,12 +23,12 @@ Other important reference material:
 # Using
 
 Create a file `terraform.tfvar` in the root of your checkout
-of this repo. By default, none of the provisioed resources
-admit traffic from the public internete.
+of this repo. By default, none of the provisioned resources
+admit traffic from the public internet.
 
 Variables you'll need to modify:
 * `assume_role` - ARN of IAM Roles to assume when calling AWS
-  APIs (inlcuding the Kubernetes API endpoint).
+  APIs (including the Kubernetes API endpoint).
 * `aws_account_id` - the account you wish to create the cluster
   in.
 * `public_access_cidrs` - IPv4 addresses to allow access from.
@@ -57,9 +57,8 @@ and the EKS control-plane. Also I have done very little testing
 # What's missing
 
 * TLS (edge or in-cluster)
-* DNS
 * Node-local DNS
-* Node OS-image updgrading
+* Node OS-image upgrading
 
 # Structure
 
@@ -97,7 +96,7 @@ We will provision one NAT gateway per private subnet.
 
 # Ingress
 
-This project deploys a Netwok Load Balancer, and a target-group
+This project deploys a Network Load Balancer, and a target-group
 which port-80 on this load-balancer is redirected to. The ARN for
 this target-group is an output of the 'eks' project.
 
