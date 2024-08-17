@@ -17,11 +17,10 @@ resource "helm_release" "cluster_autoscaler" {
       tag : var.cluster_autoscaler_image_tag
     }
     rbac : {
+
+      // Configure service account for pod identity
       serviceAccount : {
         name : "cluster-autoscaler"
-        annotations : {
-          "eks.amazonaws.com/role-arn" : data.terraform_remote_state.eks.outputs.pod_roles.kube-system_cluster-autoscaler.arn
-        }
       }
     }
   })]

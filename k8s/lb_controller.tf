@@ -26,12 +26,9 @@ resource "helm_release" "lb_controller" {
       group : local.group_name
     }
 
-    // configure SA for IRSA
+    // configure SA for pod identity
     serviceAccount : {
       name : "aws-lb-controller"
-      annotations : {
-        "eks.amazonaws.com/role-arn" : data.terraform_remote_state.eks.outputs.pod_roles.kube-system_aws-lb-controller.arn
-      }
     }
   })]
 }

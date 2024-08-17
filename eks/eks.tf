@@ -150,8 +150,6 @@ resource "aws_eks_addon" "csi" {
   addon_name    = "aws-ebs-csi-driver"
   addon_version = var.eks_csi_addon_version
 
-  service_account_role_arn = aws_iam_role.eks_irsa_role["csi"].arn
-
   configuration_values = jsonencode({
     controller : {
       extraVolumeTags : data.aws_default_tags.tags.tags
@@ -159,8 +157,6 @@ resource "aws_eks_addon" "csi" {
   })
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_irsa,
-
     // internally, AWS applies a helm-chart with a deployment
     // and waits for it to become ready, which can't happen
     // until after we have nodes so we may as well wait for that.

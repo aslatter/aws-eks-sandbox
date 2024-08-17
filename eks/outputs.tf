@@ -27,7 +27,7 @@ output "eks" {
 // output role ARNs
 output "pod_roles" {
   value = {
-    for k, v in aws_iam_role.eks_irsa_role :
+    for k, v in aws_iam_role.eks_pod_role :
     "${local.eks_pod_role_assignments[k].namespace}_${local.eks_pod_role_assignments[k].serviceAccount}" => {
       arn : v.arn
     }
