@@ -27,6 +27,9 @@ data "aws_partition" "current" {}
 
 // Find AZs to provision into
 data "aws_availability_zones" "available" {
+  // this zone seems bad for some reason
+  exclude_zone_ids = ["use1-az3"]
+
   filter {
     name   = "opt-in-status"
     values = ["opt-in-not-required"]
