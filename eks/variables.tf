@@ -29,15 +29,14 @@ variable "eks_k8s_version" {
   default = "1.30"
 }
 
-variable "eks_cni_addon_version" {
-  type = string
-  // https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
-  default = "v1.18.3-eksbuild.1"
-}
-
 variable "eks_csi_addon_version" {
   type    = string
   default = "v1.33.0-eksbuild.1"
+}
+
+variable "eks_pod_identity_addon_version" {
+  type    = string
+  default = "v1.3.0-eksbuild.1"
 }
 
 variable "cluster_az_count" {

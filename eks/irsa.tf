@@ -15,6 +15,7 @@ locals {
     cni : {
       namespace : "kube-system"
       serviceAccount : "aws-node"
+      enablePodIdentity : true
       policyArns : {
         "cni" : "${local.iam_role_policy_prefix}/AmazonEKS_CNI_Policy"
         "cni_ipv6" : aws_iam_policy.cni_ipv6_policy.arn
@@ -66,25 +67,48 @@ resource "aws_iam_openid_connect_provider" "eks_irsa" {
 data "aws_iam_policy_document" "eks_irsa_trust_policy" {
   for_each = local.eks_pod_role_assignments
 
-  statement {
-    sid     = "EKSClusterAssumeRole"
-    effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
+  dynamic "statement" {
+    for_each = try(each.value.enablePodIdentity, false) ? [] : [1]
+    content {
+      sid     = "EKSClusterAssumeRole"
+      effect  = "Allow"
+      actions = ["sts:AssumeRoleWithWebIdentity"]
 
-    principals {
-      type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.eks_irsa.arn]
-    }
+      principals {
+        type        = "Federated"
+        identifiers = [aws_iam_openid_connect_provider.eks_irsa.arn]
+      }
 
-    condition {
-      test     = "StringEquals"
-      variable = "${local.eks_oidc_issuer_name}:sub"
-      values   = ["system:serviceaccount:${each.value.namespace}:${each.value.serviceAccount}"]
+      condition {
+        test     = "StringEquals"
+        variable = "${local.eks_oidc_issuer_name}:sub"
+        values   = ["system:serviceaccount:${each.value.namespace}:${each.value.serviceAccount}"]
+      }
+      condition {
+        test     = "StringEquals"
+        variable = "${local.eks_oidc_issuer_name}:aud"
+        values   = ["sts.amazonaws.com"]
+      }
     }
-    condition {
-      test     = "StringEquals"
-      variable = "${local.eks_oidc_issuer_name}:aud"
-      values   = ["sts.amazonaws.com"]
+  }
+
+  dynamic "statement" {
+    for_each = try(each.value.enablePodIdentity, false) ? [1] : []
+    content {
+      sid     = "EKSPodIdentityAssumeRole"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole", "sts:TagSession"]
+
+      principals {
+        type        = "Service"
+        identifiers = ["pods.eks.amazonaws.com"]
+      }
+
+      condition {
+        test     = "StringEquals"
+        variable = "aws:SourceArn"
+        values   = [aws_eks_cluster.main.arn]
+      }
     }
   }
 }
@@ -116,4 +140,12 @@ resource "aws_iam_role_policy_attachment" "eks_irsa" {
 
   policy_arn = each.value.policy
   role       = each.value.role
+}
+
+resource "aws_eks_pod_identity_association" "eks_pod_identity_association" {
+  for_each        = { for k, v in local.eks_pod_role_assignments : k => v if try(v.enablePodIdentity, false) }
+  cluster_name    = aws_eks_cluster.main.name
+  namespace       = each.value.namespace
+  service_account = each.value.serviceAccount
+  role_arn        = aws_iam_role.eks_irsa_role[each.key].arn
 }

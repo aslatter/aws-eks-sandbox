@@ -119,7 +119,10 @@ resource "aws_eks_node_group" "main" {
 
   depends_on = [
     aws_iam_role_policy_attachment.node,
-    aws_eks_addon.vpc-cni,
+    // we need to make sure we're not creating pods prior to the pod-identity
+    // association - otherwise the builtin web-hooks won't know to modify the
+    // pods to be aware of their identity-source.
+    aws_eks_pod_identity_association.eks_pod_identity_association,
   ]
 }
 

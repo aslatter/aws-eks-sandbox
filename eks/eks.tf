@@ -139,25 +139,10 @@ resource "aws_iam_role_policy_attachment" "eks" {
 // Add-ons
 //
 
-// We need to install our own instance of the CNI so
-// that we have a spot to assign it a role to assume.
-// Otherwise we would need to open-up the node IMDS
-// endpoint, and grant VPC/ENI/EC2 access to the nodes.
-resource "aws_eks_addon" "vpc-cni" {
+resource "aws_eks_addon" "eks-pod-identity-agent" {
   cluster_name  = aws_eks_cluster.main.name
-  addon_name    = "vpc-cni"
-  addon_version = var.eks_cni_addon_version
-
-  // note! this is using IRSA, not EKS Pod Identities (so requires
-  // OIDC-trust-setup).
-  //
-  // https://docs.aws.amazon.com/eks/latest/userguide/managing-add-ons.html
-  service_account_role_arn = aws_iam_role.eks_irsa_role["cni"].arn
-
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
-
-  depends_on = [aws_iam_role_policy_attachment.eks_irsa]
+  addon_name    = "eks-pod-identity-agent"
+  addon_version = var.eks_pod_identity_addon_version
 }
 
 resource "aws_eks_addon" "csi" {
