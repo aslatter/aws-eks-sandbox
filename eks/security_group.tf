@@ -105,19 +105,19 @@ locals {
       // using those ports).
       description               = "allow all from nlb"
       type                      = "ingress"
-      protocol                  = "-1"
+      protocol                  = "all"
       referenced_security_group = "nlb"
     }
     "egress_ipv4" = {
       description = "allow egress"
       type        = "egress"
-      protocol    = "-1"
+      protocol    = "all"
       cidr_ipv4   = "0.0.0.0/0"
     }
     "egress_ipv6" = {
       description = "allow egress"
       type        = "egress"
-      protocol    = "-1"
+      protocol    = "all"
       cidr_ipv6   = "::/0"
     }
   }

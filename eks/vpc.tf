@@ -20,7 +20,7 @@ resource "aws_vpc" "main" {
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
   ingress {
-    protocol         = -1
+    protocol         = "all"
     self             = true
     from_port        = 0
     to_port          = 0
@@ -31,7 +31,7 @@ resource "aws_default_security_group" "default" {
   egress {
     from_port        = 0
     to_port          = 0
-    protocol         = "-1"
+    protocol         = "all"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }

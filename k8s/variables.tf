@@ -6,25 +6,25 @@ variable "assume_role" {
 
 variable "k8s_metrics_chart_version" {
   type    = string
-  default = "3.11.0"
+  default = "3.12.1"
 }
 
 variable "lb_controller_chart_version" {
   type    = string
-  default = "1.6.2"
+  default = "1.8.2"
 }
 
 variable "nginx_ingress_chart_version" {
   type    = string
-  default = "4.9.1"
+  default = "4.11.2"
 }
 
 variable "cluster_autoscaler_chart_version" {
   type    = string
-  default = "9.34.1"
+  default = "9.37.0"
 }
 
 variable "cluster_autoscaler_image_tag" {
   type    = string
-  default = "v1.29.0"
+  default = "v1.30.2"
 }
