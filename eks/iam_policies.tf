@@ -349,6 +349,7 @@ resource "aws_iam_role_policy_attachment" "node" {
     // required EKS policies
     "AmazonEKSWorkerNodePolicy",
     "AmazonEC2ContainerRegistryReadOnly",
+    "AmazonSSMManagedInstanceCore",
   ])
 
   policy_arn = "${local.iam_role_policy_prefix}/${each.value}"
