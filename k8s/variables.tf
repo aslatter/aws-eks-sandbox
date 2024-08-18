@@ -19,16 +19,6 @@ variable "nginx_ingress_chart_version" {
   default = "4.11.2"
 }
 
-variable "cluster_autoscaler_chart_version" {
-  type    = string
-  default = "9.37.0"
-}
-
-variable "cluster_autoscaler_image_tag" {
-  type    = string
-  default = "v1.30.2"
-}
-
 variable "karpenter_chart_version" {
   type = string
   default = "1.0.0"

@@ -38,13 +38,6 @@ locals {
         karpenter : aws_iam_policy.karpenter.arn
       }
     }
-    cas : {
-      namespace : "kube-system"
-      serviceAccount : "cluster-autoscaler"
-      policyArns : {
-        cas : aws_iam_policy.cluster_autoscaler.arn
-      }
-    }
   }
 }
 

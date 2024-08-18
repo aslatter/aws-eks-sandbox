@@ -259,53 +259,6 @@ resource "aws_iam_policy" "karpenter" {
   policy = data.aws_iam_policy_document.karpenter.json
 }
 
-// Policy we attach to the cluster-autoscaler role. It
-// operates on ASGs. We scope access based on EKS-generated
-// resource-tags, rather than the tags we use in our permission
-// boundary, because EKS doesn't give us any control over
-// tagging ASGs.
-data "aws_iam_policy_document" "cluster_autoscaler" {
-  statement {
-    // read-only stuff
-    effect = "Allow"
-    actions = [
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:DescribeAutoScalingInstances",
-      "autoscaling:DescribeLaunchConfigurations",
-      "autoscaling:DescribeScalingActivities",
-      "autoscaling:DescribeTags",
-      "ec2:DescribeInstanceTypes",
-      "ec2:DescribeLaunchTemplateVersions",
-      "eks:DescribeNodegroup"
-    ]
-    resources = ["*"]
-  }
-  statement {
-    effect = "Allow"
-    actions = [
-      "autoscaling:SetDesiredCapacity",
-      "autoscaling:TerminateInstanceInAutoScalingGroup",
-      "ec2:DescribeImages",
-      "ec2:GetInstanceTypesFromInstanceRequirements",
-    ]
-    resources = ["*"]
-    // scope to the tags EKS sets for us for our cluster
-    // there doesn't seem to be a way with TF to easily get
-    // tags onto the ASGs EKS creates for us.
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/k8s.io/cluster-autoscaler/${local.cluster_name}"
-      values   = ["owned"]
-    }
-  }
-}
-
-resource "aws_iam_policy" "cluster_autoscaler" {
-  name   = "cluster_autoscaler-${local.entropy}"
-  path   = "/deployment/"
-  policy = data.aws_iam_policy_document.cluster_autoscaler.json
-}
-
 //
 // Node Role
 //
