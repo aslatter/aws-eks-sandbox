@@ -34,6 +34,24 @@ output "pod_roles" {
   }
 }
 
+output "roles" {
+  value = {
+    "node" : {
+      arn : aws_iam_role.node.arn
+      name : aws_iam_role.node.name
+    }
+  }
+}
+
+output "instance_profiles" {
+  value = {
+    node : {
+      arn : aws_iam_instance_profile.node.arn
+      name : aws_iam_instance_profile.node.name
+    }
+  }
+}
+
 output "ipv6_cidr_block" {
   value = var.ipv6_enable ? aws_vpc.main.ipv6_cidr_block : null
 }

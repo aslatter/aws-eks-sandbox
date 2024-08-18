@@ -74,6 +74,13 @@ resource "aws_eks_access_entry" "main" {
   principal_arn = each.value
 }
 
+// allow our nodes to talk to the control-plane
+resource "aws_eks_access_entry" "node" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node.arn
+  type          = "EC2_LINUX"
+}
+
 resource "aws_eks_access_policy_association" "main" {
   for_each      = toset(local.cluster_admin_access_role_arns)
   cluster_name  = aws_eks_cluster.main.name
@@ -145,21 +152,21 @@ resource "aws_eks_addon" "eks-pod-identity-agent" {
   addon_version = var.eks_pod_identity_addon_version
 }
 
-resource "aws_eks_addon" "csi" {
-  cluster_name  = aws_eks_cluster.main.name
-  addon_name    = "aws-ebs-csi-driver"
-  addon_version = var.eks_csi_addon_version
+# resource "aws_eks_addon" "csi" {
+#   cluster_name  = aws_eks_cluster.main.name
+#   addon_name    = "aws-ebs-csi-driver"
+#   addon_version = var.eks_csi_addon_version
 
-  configuration_values = jsonencode({
-    controller : {
-      extraVolumeTags : data.aws_default_tags.tags.tags
-    }
-  })
+#   configuration_values = jsonencode({
+#     controller : {
+#       extraVolumeTags : data.aws_default_tags.tags.tags
+#     }
+#   })
 
-  depends_on = [
-    // internally, AWS applies a helm-chart with a deployment
-    // and waits for it to become ready, which can't happen
-    // until after we have nodes so we may as well wait for that.
-    aws_eks_node_group.main,
-  ]
-}
+#   depends_on = [
+#     // internally, AWS applies a helm-chart with a deployment
+#     // and waits for it to become ready, which can't happen
+#     // until after we have nodes so we may as well wait for that.
+#     aws_eks_node_group.main,
+#   ]
+# }

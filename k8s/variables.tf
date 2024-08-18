@@ -28,3 +28,8 @@ variable "cluster_autoscaler_image_tag" {
   type    = string
   default = "v1.30.2"
 }
+
+variable "karpenter_chart_version" {
+  type = string
+  default = "1.0.0"
+}

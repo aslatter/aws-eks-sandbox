@@ -24,4 +24,6 @@ resource "helm_release" "cluster_autoscaler" {
       }
     }
   })]
+
+  depends_on = [kubectl_manifest.karpenter_node_pool]
 }

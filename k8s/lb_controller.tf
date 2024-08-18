@@ -31,4 +31,6 @@ resource "helm_release" "lb_controller" {
       name : "aws-lb-controller"
     }
   })]
+
+  depends_on = [kubectl_manifest.karpenter_node_pool]
 }

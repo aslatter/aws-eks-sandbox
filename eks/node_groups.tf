@@ -7,6 +7,7 @@ locals {
   eks_node_groups = {
     one : {
       name : "node-group-1"
+      enabled : false
 
       // AWS allows apecifying multiple instance-types
       // to use.
@@ -72,7 +73,7 @@ resource "aws_eks_node_group" "main" {
   for_each = { for k, v in local.eks_node_groups : k => v if lookup(v, "enabled", true) }
 
   cluster_name  = local.cluster_name
-  node_role_arn = aws_iam_role.node[each.key].arn
+  node_role_arn = aws_iam_role.node.arn
   subnet_ids    = aws_subnet.private[*].id
 
   scaling_config {
@@ -124,65 +125,4 @@ resource "aws_eks_node_group" "main" {
     // pods to be aware of their identity-source.
     aws_eks_pod_identity_association.eks_pod_identity_association,
   ]
-}
-
-data "aws_iam_policy_document" "node_assume_role_policy" {
-  statement {
-    sid     = "EKSNodeAssumeRole"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-// there isn't much value at the moment for creating a
-// role per node-group?
-resource "aws_iam_role" "node" {
-  for_each = { for k, v in local.eks_node_groups : k => v if lookup(v, "enabled", true) }
-
-  name_prefix = "${each.value.name}-"
-  path        = "/deployment/"
-  // path
-  description = "Node role for ${each.value.name}"
-
-  assume_role_policy    = data.aws_iam_policy_document.node_assume_role_policy.json
-  permissions_boundary  = var.iam_permission_boundary
-  force_detach_policies = true
-
-  tags = {
-    Name : "${each.value.name}"
-  }
-}
-
-// https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group
-resource "aws_iam_role_policy_attachment" "node" {
-  for_each = merge([
-    for group_key, group in local.eks_node_groups : merge([
-      for role in [
-        // NOTE! these policies give us account-wide access
-        // to things! custom policies or permission boundaries
-        // count scope this down.
-
-        // NOTE! these policies are accessible from the node
-        // IMDS endpoint, which is accessible from pods
-        // using host-networking.
-
-        // required EKS policies
-        "AmazonEKSWorkerNodePolicy",
-        "AmazonEC2ContainerRegistryReadOnly",
-      ] :
-      {
-        "${group_key}-${role}" : {
-          group : group_key
-          role : role
-        }
-      }
-    ]...)
-  if lookup(group, "enabled", true)]...)
-
-  policy_arn = "${local.iam_role_policy_prefix}/${each.value.role}"
-  role       = aws_iam_role.node[each.value.group].name
 }

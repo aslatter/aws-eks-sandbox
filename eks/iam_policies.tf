@@ -109,6 +109,156 @@ resource "aws_iam_policy" "lb_controler" {
   policy = data.aws_iam_policy_document.lb_controler.json
 }
 
+// Policy attached to the Karpenter pod-role.
+// https://karpenter.sh/docs/getting-started/migrating-from-cas/
+data "aws_iam_policy_document" "karpenter" {
+  statement {
+    // Karpenter
+    effect = "Allow"
+    // TODO - can some of these be scoped?
+    // i.e. we can probably scope 'run instance' and
+    // 'tag instance' to the appropriate subnets.
+    actions = [
+      "ssm:GetParameter",
+      "ec2:DescribeImages",
+      "ec2:RunInstances",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeInstances",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DescribeInstanceTypeOfferings",
+      "ec2:DescribeAvailabilityZones",
+      "ec2:DeleteLaunchTemplate",
+      "ec2:CreateTags",
+      "ec2:CreateLaunchTemplate",
+      // who deletes these?
+      "ec2:CreateFleet",
+      "ec2:DescribeSpotPriceHistory",
+      "pricing:GetProducts"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    // ConditionalEC2Termination
+    effect    = "Allow"
+    actions   = ["ec2:TerminateInstances"]
+    resources = ["*"]
+    // this condition is not meaningful because karpenter can tag any ec2 instance
+    condition {
+      test     = "StringLike"
+      variable = "ec2:ResourceTag/karpenter.sh/nodepool"
+      values   = ["*"]
+    }
+  }
+  statement {
+    // PassNodeIAMRole (!!)
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = [aws_iam_role.node.arn]
+  }
+  statement {
+    // EKSClusterEndpointLookup
+    effect    = "Allow"
+    actions   = ["eks:DescribeCluster"]
+    resources = [aws_eks_cluster.main.arn]
+  }
+  statement {
+    // AllowScopedInstanceProfileCreationActions
+    effect    = "Allow"
+    actions   = ["iam:CreateInstanceProfile"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
+      values   = ["owned"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/topology.kubernetes.io/region"
+      values   = [var.region]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "aws:RequestTag/karpenter.k8s.aws/ec2nodeclass"
+      values   = ["*"]
+    }
+  }
+  statement {
+    // AllowScopedInstanceProfileTagActions
+    effect    = "Allow"
+    actions   = ["iam:TagInstanceProfile"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
+      values   = ["owned"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/topology.kubernetes.io/region"
+      values   = [var.region]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
+      values   = ["owned"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/topology.kubernetes.io/region"
+      values   = [var.region]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass"
+      values   = ["*"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "aws:RequestTag/karpenter.k8s.aws/ec2nodeclass"
+      values   = ["*"]
+    }
+  }
+  statement {
+    // AllowScopedInstanceProfileActions
+    effect = "Allow"
+    actions = [
+      "iam:AddRoleToInstanceProfile",
+      "iam:RemoveRoleFromInstanceProfile",
+      "iam:DeleteInstanceProfile",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
+      values   = ["owned"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/topology.kubernetes.io/region"
+      values   = [var.region]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass"
+      values   = ["*"]
+    }
+  }
+  statement {
+    // AllowInstanceProfileReadActions
+    effect    = "Allow"
+    actions   = ["iam:GetInstanceProfile"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "karpenter" {
+  name   = "karpenter-${local.entropy}"
+  path   = "/deployment/"
+  policy = data.aws_iam_policy_document.karpenter.json
+}
+
 // Policy we attach to the cluster-autoscaler role. It
 // operates on ASGs. We scope access based on EKS-generated
 // resource-tags, rather than the tags we use in our permission
@@ -154,4 +304,59 @@ resource "aws_iam_policy" "cluster_autoscaler" {
   name   = "cluster_autoscaler-${local.entropy}"
   path   = "/deployment/"
   policy = data.aws_iam_policy_document.cluster_autoscaler.json
+}
+
+//
+// Node Role
+//
+// This policy is a bit different from the others, as it
+// is the role assumed by our underlying VMs. It should
+// be kept as small as possible, as any pod using
+// host-networking can grab the credentials for this role
+// through the VM IMDS endpoint.
+//
+// We cannot disable the IMDS endpoint as this is how the
+// VM itself can do things like pull-images (and the pod-
+// identity-agent uses the node-role to get auth-tokens).
+//
+
+data "aws_iam_policy_document" "node_assume_role_policy" {
+  statement {
+    sid     = "EKSNodeAssumeRole"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "node" {
+  name_prefix = "eks_node_role-"
+  path        = "/deployment/"
+  // path
+  description = "EKS node role"
+
+  assume_role_policy    = data.aws_iam_policy_document.node_assume_role_policy.json
+  permissions_boundary  = var.iam_permission_boundary
+  force_detach_policies = true
+}
+
+// https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group
+resource "aws_iam_role_policy_attachment" "node" {
+  for_each = toset([
+    // required EKS policies
+    "AmazonEKSWorkerNodePolicy",
+    "AmazonEC2ContainerRegistryReadOnly",
+  ])
+
+  policy_arn = "${local.iam_role_policy_prefix}/${each.value}"
+  role       = aws_iam_role.node.name
+}
+
+resource "aws_iam_instance_profile" "node" {
+  name_prefix = "eks_node-"
+  path        = "/deployment/"
+  role = aws_iam_role.node.name
 }

@@ -41,6 +41,8 @@ resource "helm_release" "ingress_controller" {
       replicaCount : 2
     }
   })]
+
+  depends_on = [kubectl_manifest.karpenter_node_pool]
 }
 
 

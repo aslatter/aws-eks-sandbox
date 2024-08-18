@@ -23,6 +23,7 @@ resource "aws_security_group" "eks_nodes" {
 
   tags = {
     Name : "sg-eks-nodes"
+    "kubernetes.io/cluster/${local.cluster_name}" : "shared"
   }
 
   lifecycle {
