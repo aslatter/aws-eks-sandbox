@@ -364,8 +364,8 @@ resource "aws_vpc_endpoint" "s3" {
 
 resource "aws_vpc_endpoint_route_table_association" "s3" {
   for_each = merge(
-    { for k, v in aws_route_table.public :
-      "public-${k}" => v.id
+    {
+      public : aws_route_table.public.id
     },
     { for k, v in aws_route_table.private :
       "private-${k}" => v.id
