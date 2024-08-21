@@ -22,7 +22,9 @@ clean-eks: clean-k8s
     terraform -chdir=eks destroy -var-file=../terraform.tfvars -compact-warnings
 
 clean-k8s:
-    terraform -chdir=k8s destroy -var-file=../terraform.tfvars -compact-warnings
+    ./scripts/clean.sh
 
 kubeconfig:
+    #!/usr/bin/bash
+    set -euo pipefail
     terraform -chdir=eks output -json eks | jq -r .kubeconfig > ~/.kube/config
