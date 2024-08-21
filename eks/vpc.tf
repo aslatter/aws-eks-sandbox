@@ -348,3 +348,33 @@ resource "aws_lb_target_group" "nlb_http" {
     create_before_destroy = true
   }
 }
+
+//
+// S3 gateway endpoint
+//
+
+// We're not directly using S3, but when our nodes
+// pull images from ECR that uses S3. Adding the
+// endpoint should save on NAT Gateway $$$.
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.${var.region}.s3"
+}
+
+resource "aws_vpc_endpoint_route_table_association" "s3" {
+  for_each = merge(
+    { for k, v in aws_route_table.public :
+      "public-${k}" => v.id
+    },
+    { for k, v in aws_route_table.private :
+      "private-${k}" => v.id
+    },
+    {
+      intra : aws_route_table.intra.id
+    },
+  )
+
+  vpc_endpoint_id = aws_vpc_endpoint.s3.id
+  route_table_id  = each.value
+}
