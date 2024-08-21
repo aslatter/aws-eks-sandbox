@@ -108,8 +108,10 @@ resource "kubectl_manifest" "karpenter_node_pool" {
       limits : {
         cpu : 24
       }
-      disruptions : {
+      disruption : {
         // https://karpenter.sh/v1.0/concepts/disruption/
+        consolidationPolicy : "WhenEmptyOrUnderutilized"
+        consolidateAfter : "5m"
       }
       template : {
         metadata : {
@@ -156,7 +158,7 @@ resource "kubectl_manifest" "karpenter_node_pool" {
             {
               key : "karpenter.k8s.aws/instance-size"
               operator : "NotIn"
-              values : ["nano"]
+              values : ["nano", "micro"]
             }
           ]
         }
