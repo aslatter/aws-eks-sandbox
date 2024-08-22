@@ -7,8 +7,6 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  assign_generated_ipv6_cidr_block = var.ipv6_enable ? true : null
-
   tags = {
     Name = "vpc"
   }
@@ -25,7 +23,6 @@ resource "aws_default_security_group" "default" {
     from_port        = 0
     to_port          = 0
     cidr_blocks      = var.public_access_cidrs
-    ipv6_cidr_blocks = var.public_access_cidrs_ipv6
   }
 
   egress {
@@ -33,7 +30,6 @@ resource "aws_default_security_group" "default" {
     to_port          = 0
     protocol         = "all"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = {
@@ -56,13 +52,6 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.main.id
   availability_zone = local.azs[count.index]
   cidr_block        = var.vpc_public_subnets[count.index]
-  ipv6_cidr_block = (
-    var.ipv6_enable
-    ? cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, var.vpc_ipv6_public_subnets[count.index])
-    : null
-  )
-
-  assign_ipv6_address_on_creation = var.ipv6_enable ? true : null
 
   tags = {
     Name : "subnet-public-${local.azs[count.index]}"
@@ -89,14 +78,6 @@ resource "aws_route" "public_internet_gateway" {
   // todo - community module includes a 5m timeout
 }
 
-resource "aws_route" "public_internet_gateway_ipv6" {
-  count = var.ipv6_enable ? 1 : 0
-
-  route_table_id              = aws_route_table.public.id
-  destination_ipv6_cidr_block = "::/0"
-  gateway_id                  = aws_internet_gateway.main.id
-}
-
 // private subnet
 //
 // the private subnet will hold our k8s nodes.
@@ -106,23 +87,12 @@ resource "aws_route" "public_internet_gateway_ipv6" {
 // we have as many subnets as we wish to have AZs for
 // our k8s nodes. We also provision a separate NAT
 // gateway per AZ.
-//
-// We also create a route to the "egress only internet
-// gateway" for ipv6 (NAT gateway only supports ipv4
-// destinations).
 resource "aws_subnet" "private" {
   count = var.node_az_count
 
   vpc_id            = aws_vpc.main.id
   availability_zone = local.azs[count.index]
   cidr_block        = var.vpc_private_subnets[count.index]
-  ipv6_cidr_block = (
-    var.ipv6_enable
-    ? cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, var.vpc_ipv6_private_subnets[count.index])
-    : null
-  )
-
-  assign_ipv6_address_on_creation = var.ipv6_enable ? true : null
 
   tags = {
     Name : "subnet-private-${local.azs[count.index]}"
@@ -163,13 +133,6 @@ resource "aws_subnet" "intra" {
   vpc_id            = aws_vpc.main.id
   availability_zone = local.azs[count.index]
   cidr_block        = var.vpc_intra_subnets[count.index]
-  ipv6_cidr_block = (
-    var.ipv6_enable
-    ? cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, var.vpc_ipv6_intra_subnets[count.index])
-    : null
-  )
-
-  assign_ipv6_address_on_creation = var.ipv6_enable ? true : null
 
   tags = {
     Name : "subnet-intra-${local.azs[count.index]}"
@@ -220,27 +183,12 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "main" {
   count = var.node_az_count
 
-  // we assign IPv4 addresses to the ngw per AZ. There is no
-  // way to assign IPv6 - they come out of our VPC-allocation.
-  // Presumably an external entity would apply firewall rules
-  // to the entire /64.
+  // we assign IPv4 addresses to the ngw per AZ.
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
 
   tags = {
     Name : "nat-gateway-${local.azs[count.index]}"
-  }
-}
-
-// internet egress for ipv6 traffic within private
-// subnet (nat gateway only supports ipv4 endpoints).
-resource "aws_egress_only_internet_gateway" "main" {
-  count = var.ipv6_enable ? 1 : 0
-
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name : "eigw"
   }
 }
 
@@ -254,14 +202,6 @@ resource "aws_route" "private_nat_gateway" {
   nat_gateway_id         = aws_nat_gateway.main[count.index].id
 
   // again the community module use a 5m create-timeout here?
-}
-
-resource "aws_route" "private_internet_egress" {
-  count = var.ipv6_enable ? var.node_az_count : 0
-
-  route_table_id              = aws_route_table.private[count.index].id
-  destination_ipv6_cidr_block = "::/0"
-  egress_only_gateway_id      = aws_egress_only_internet_gateway.main[0].id
 }
 
 // incoming NLB
@@ -281,12 +221,8 @@ resource "aws_lb" "nlb" {
   internal           = false
   load_balancer_type = "network"
   security_groups    = [aws_security_group.nlb.id]
-  ip_address_type    = var.ipv6_enable ? "dualstack" : null
 
-  // we assign IPv4 addresses to the lb per AZ. There is no
-  // way to assign IPv6 - they come out of our VPC-allocation.
-  // Presumably an external entity would apply firewall rules
-  // to the entire /64.
+  // we assign IPv4 addresses to the lb per AZ.
   dynamic "subnet_mapping" {
     for_each = range(var.node_az_count)
     content {
@@ -316,16 +252,10 @@ resource "aws_lb_listener" "nlb_http" {
 }
 
 resource "aws_lb_target_group" "nlb_http" {
-  // there might be some advantages to "instance" style target-groups,
-  // but I've had trouble getting those to work with ipv6.
-  //
-  // https://github.com/hashicorp/terraform-provider-aws/issues/35010
-
   name_prefix     = "http-"
   target_type     = "ip"
   protocol        = "TCP"
   port            = "80" // doesn't matter, as the targets will override this
-  ip_address_type = var.ipv6_enable ? "ipv6" : null
   vpc_id          = aws_vpc.main.id
   // preserve client ip?
 

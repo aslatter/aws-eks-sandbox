@@ -1,33 +1,6 @@
 
 // custom IAM policies
 
-// AWS only has a standard policy for IPv4 CNI. This is the recommendation
-// for IPv6.
-data "aws_iam_policy_document" "cni_ipv6_policy" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ec2:AssignIpv6Addresses",
-      "ec2:DescribeInstances",
-      "ec2:DescribeTags",
-      "ec2:DescribeNetworkInterfaces",
-      "ec2:DescribeInstanceTypes"
-    ]
-    resources = ["*"]
-  }
-  statement {
-    effect    = "Allow"
-    actions   = ["ec2:CreateTags"]
-    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:network-interface/*"]
-  }
-}
-
-resource "aws_iam_policy" "cni_ipv6_policy" {
-  name   = "cni_ipv6_policy-${local.entropy}"
-  path   = "/deployment/"
-  policy = data.aws_iam_policy_document.cni_ipv6_policy.json
-}
-
 // We attach this policy to both the CNI-controller and the EKS control-plane
 // itself. AWS IAM does support conditionally-allowing access to ENIs based
 // on resource-tags, but EKS doesn't give us any way to apply such tags, so

@@ -52,10 +52,6 @@ output "instance_profiles" {
   }
 }
 
-output "ipv6_cidr_block" {
-  value = var.ipv6_enable ? aws_vpc.main.ipv6_cidr_block : null
-}
-
 output "vpc" {
   value = {
     vpc_id : aws_vpc.main.id

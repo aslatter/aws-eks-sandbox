@@ -115,12 +115,6 @@ locals {
       protocol    = "all"
       cidr_ipv4   = "0.0.0.0/0"
     }
-    "egress_ipv6" = {
-      description = "allow egress"
-      type        = "egress"
-      protocol    = "all"
-      cidr_ipv6   = "::/0"
-    }
   }
 }
 
@@ -142,7 +136,6 @@ resource "aws_vpc_security_group_ingress_rule" "eks_nodes" {
 
   description = lookup(each.value, "description", null)
   cidr_ipv4   = lookup(each.value, "cidr_ipv4", null)
-  cidr_ipv6   = lookup(each.value, "cidr_ipv6", null)
 
   referenced_security_group_id = (try(each.value.referenced_security_group, null) == null
     ? null
@@ -171,7 +164,6 @@ resource "aws_vpc_security_group_egress_rule" "eks_nodes" {
 
   description = lookup(each.value, "description", null)
   cidr_ipv4   = lookup(each.value, "cidr_ipv4", null)
-  cidr_ipv6   = lookup(each.value, "cidr_ipv6", null)
 }
 
 resource "aws_vpc_security_group_egress_rule" "nlb_nodes" {
@@ -180,8 +172,8 @@ resource "aws_vpc_security_group_egress_rule" "nlb_nodes" {
   referenced_security_group_id = aws_security_group.eks_nodes.id
 }
 
-// nlb-ingress rules. we wish to allow 80 and 443, udp and tcp, ipv4
-// and ipv6. NLBs with an "ip" target-type don't actually support UDP,
+// nlb-ingress rules. we wish to allow 80 and 443, udp and tcp.
+// NLBs with an "ip" target-type don't actually support UDP,
 // but we can dream.
 //
 // I couldn't think of a better way to do this than brute-force, so
@@ -207,26 +199,6 @@ resource "aws_vpc_security_group_ingress_rule" "nlb_https_ipv4_udp" {
   cidr_ipv4         = var.public_access_cidrs[count.index]
 }
 
-resource "aws_vpc_security_group_ingress_rule" "nlb_https_ipv6_tcp" {
-  count = length(var.public_access_cidrs_ipv6)
-
-  security_group_id = aws_security_group.nlb.id
-  ip_protocol       = "tcp"
-  from_port         = 443
-  to_port           = 443
-  cidr_ipv6         = var.public_access_cidrs_ipv6[count.index]
-}
-
-resource "aws_vpc_security_group_ingress_rule" "nlb_https_ipv6_udp" {
-  count = length(var.public_access_cidrs_ipv6)
-
-  security_group_id = aws_security_group.nlb.id
-  ip_protocol       = "udp"
-  from_port         = 443
-  to_port           = 443
-  cidr_ipv6         = var.public_access_cidrs_ipv6[count.index]
-}
-
 resource "aws_vpc_security_group_ingress_rule" "nlb_http_ipv4_tcp" {
   count = length(var.public_access_cidrs)
 
@@ -245,24 +217,4 @@ resource "aws_vpc_security_group_ingress_rule" "nlb_http_ipv4_udp" {
   from_port         = 80
   to_port           = 80
   cidr_ipv4         = var.public_access_cidrs[count.index]
-}
-
-resource "aws_vpc_security_group_ingress_rule" "nlb_http_ipv6_tcp" {
-  count = length(var.public_access_cidrs_ipv6)
-
-  security_group_id = aws_security_group.nlb.id
-  ip_protocol       = "tcp"
-  from_port         = 80
-  to_port           = 80
-  cidr_ipv6         = var.public_access_cidrs_ipv6[count.index]
-}
-
-resource "aws_vpc_security_group_ingress_rule" "nlb_http_ipv6_udp" {
-  count = length(var.public_access_cidrs_ipv6)
-
-  security_group_id = aws_security_group.nlb.id
-  ip_protocol       = "udp"
-  from_port         = 80
-  to_port           = 80
-  cidr_ipv6         = var.public_access_cidrs_ipv6[count.index]
 }

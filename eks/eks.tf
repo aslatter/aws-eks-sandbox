@@ -6,10 +6,6 @@ resource "aws_eks_cluster" "main" {
 
   // TODO - enabled cluster log types?
 
-  kubernetes_network_config {
-    ip_family = var.ipv6_enable ? "ipv6" : null
-  }
-
   vpc_config {
     // default behavior is to apply this SG to the control-plane
     // ENIs provisioned in our VPC and for the nodes, however
