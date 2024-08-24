@@ -29,6 +29,16 @@ variable "eks_k8s_version" {
   default = "1.30"
 }
 
+variable "eks_vpc_cni_addon_version" {
+  type    = string
+  default = "v1.18.3-eksbuild.2"
+}
+
+variable "eks_kube_proxy_addon_version" {
+  type = string
+  default = "v1.30.3-eksbuild.2"
+}
+
 variable "eks_csi_addon_version" {
   type    = string
   default = "v1.33.0-eksbuild.1"
