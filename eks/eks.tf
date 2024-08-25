@@ -4,8 +4,6 @@ resource "aws_eks_cluster" "main" {
   role_arn = aws_iam_role.eks.arn
   version  = var.eks_k8s_version
 
-  bootstrap_self_managed_addons = false
-
   // TODO - enabled cluster log types?
 
   vpc_config {
@@ -149,23 +147,14 @@ resource "aws_eks_addon" "vpc-cni" {
   addon_name = "vpc-cni"
   addon_version = var.eks_vpc_cni_addon_version
 
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
   configuration_values = jsonencode({
     env : {
       ENABLE_PREFIX_DELEGATION : "true"
     }
   })
-}
-
-resource "aws_eks_addon" "kube-proxy" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name = "kube-proxy"
-  addon_version = var.eks_kube_proxy_addon_version
-}
-
-resource "aws_eks_addon" "coredns" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name = "coredns"
-  addon_version = var.eks_coredns_addon_version
 }
 
 resource "aws_eks_addon" "eks-pod-identity-agent" {
