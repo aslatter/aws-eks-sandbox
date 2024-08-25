@@ -162,6 +162,12 @@ resource "aws_eks_addon" "kube-proxy" {
   addon_version = var.eks_kube_proxy_addon_version
 }
 
+resource "aws_eks_addon" "coredns" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name = "coredns"
+  addon_version = var.eks_coredns_addon_version
+}
+
 resource "aws_eks_addon" "eks-pod-identity-agent" {
   cluster_name  = aws_eks_cluster.main.name
   addon_name    = "eks-pod-identity-agent"

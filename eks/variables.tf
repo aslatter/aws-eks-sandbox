@@ -39,6 +39,11 @@ variable "eks_kube_proxy_addon_version" {
   default = "v1.30.3-eksbuild.2"
 }
 
+variable "eks_coredns_addon_version" {
+  type = string
+  default = "v1.11.1-eksbuild.8"
+}
+
 variable "eks_csi_addon_version" {
   type    = string
   default = "v1.33.0-eksbuild.1"
