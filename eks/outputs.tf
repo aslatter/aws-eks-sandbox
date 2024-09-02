@@ -62,3 +62,13 @@ output "vpc" {
     nlb_dns_name : aws_lb.nlb.dns_name
   }
 }
+
+output "queues" {
+  value = {
+    "karpenterEvents" : {
+      arn : aws_sqs_queue.karpenter.arn
+      id : aws_sqs_queue.karpenter.id
+      name : aws_sqs_queue.karpenter.name
+    }
+  }
+}

@@ -84,6 +84,7 @@ resource "aws_iam_policy" "lb_controler" {
 
 // Policy attached to the Karpenter pod-role.
 // https://karpenter.sh/docs/getting-started/migrating-from-cas/
+// https://karpenter.sh/docs/reference/cloudformation/#karpentercontrollerpolicy
 data "aws_iam_policy_document" "karpenter" {
   statement {
     // Karpenter
@@ -123,6 +124,16 @@ data "aws_iam_policy_document" "karpenter" {
       variable = "ec2:ResourceTag/karpenter.sh/nodepool"
       values   = ["*"]
     }
+  }
+  statement {
+    // Interruption queue access
+    effect = "Allow"
+    actions = [
+      "sqs:DeleteMessage",
+      "sqs:GetQueueUrl",
+      "sqs:ReceiveMessage"
+    ]
+    resources = [aws_sqs_queue.karpenter.arn]
   }
   statement {
     // PassNodeIAMRole (!!)
