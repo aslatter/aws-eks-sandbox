@@ -296,5 +296,5 @@ resource "aws_iam_role_policy_attachment" "node" {
 resource "aws_iam_instance_profile" "node" {
   name_prefix = "eks_node-"
   path        = "/deployment/"
-  role = aws_iam_role.node.name
+  role        = aws_iam_role.node.name
 }

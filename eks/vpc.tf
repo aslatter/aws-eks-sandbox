@@ -18,18 +18,18 @@ resource "aws_vpc" "main" {
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
   ingress {
-    protocol         = "all"
-    self             = true
-    from_port        = 0
-    to_port          = 0
-    cidr_blocks      = var.public_access_cidrs
+    protocol    = "all"
+    self        = true
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = var.public_access_cidrs
   }
 
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "all"
-    cidr_blocks      = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "all"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
@@ -252,11 +252,11 @@ resource "aws_lb_listener" "nlb_http" {
 }
 
 resource "aws_lb_target_group" "nlb_http" {
-  name_prefix     = "http-"
-  target_type     = "ip"
-  protocol        = "TCP"
-  port            = "80" // doesn't matter, as the targets will override this
-  vpc_id          = aws_vpc.main.id
+  name_prefix = "http-"
+  target_type = "ip"
+  protocol    = "TCP"
+  port        = "80" // doesn't matter, as the targets will override this
+  vpc_id      = aws_vpc.main.id
   // preserve client ip?
 
   health_check {
