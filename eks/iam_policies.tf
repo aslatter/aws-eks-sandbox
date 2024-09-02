@@ -12,7 +12,7 @@ data "aws_iam_policy_document" "restrict_eni_access" {
     actions   = ["*"]
     resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:subnet/*"]
     condition {
-      test     = "ForAllValues:StringNotEquals"
+      test     = "StringNotEquals"
       variable = "ec2:SubnetID"
       values   = aws_subnet.private[*].id
     }
