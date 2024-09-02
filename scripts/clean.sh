@@ -39,5 +39,5 @@ INSTANCE_IDS=$(aws ec2 describe-instances \
 
 if [ -n "$INSTANCE_IDS" ]; then
     echo "Found instance to terminate: $INSTANCE_IDS"
-    aws ec2 terminate-instances --region "$REGION" --instance-ids $INSTANCE_IDS
+    aws ec2 terminate-instances --no-cli-pager --region "$REGION" --instance-ids $INSTANCE_IDS
 fi
