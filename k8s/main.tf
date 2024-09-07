@@ -31,6 +31,7 @@ locals {
   cluster_name              = data.terraform_remote_state.init.outputs.name
   cluster_endpoint          = data.terraform_remote_state.eks.outputs.eks.endpoint
   cluster_ca_certificate    = data.terraform_remote_state.eks.outputs.eks.cluster_ca_certificate
+  cluster_version           = data.terraform_remote_state.eks.outputs.eks.version
   group_name                = data.terraform_remote_state.init.outputs.name
   nlb_target_group_http_arn = data.terraform_remote_state.eks.outputs.vpc.nlb_target_group_http_arn
 }

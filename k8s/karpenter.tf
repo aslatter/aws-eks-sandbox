@@ -29,6 +29,16 @@ resource "helm_release" "karpenter" {
       interruptionQueue : data.terraform_remote_state.eks.outputs.queues.karpenterEvents.name
     }
     controller : {
+      env : [
+        {
+          // force a deployment re-roll on k8s versions change.
+          // fargate nodes don't get a new kubelet on their own, so
+          // we need to force it.
+          name : "X_K8S_VERSION"
+          value : local.cluster_version
+        }
+
+      ]
       resources : {
         requests : {
           cpu : "0.5"
