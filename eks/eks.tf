@@ -3,6 +3,9 @@ resource "aws_eks_cluster" "main" {
   name     = local.cluster_name
   role_arn = aws_iam_role.eks.arn
   version  = var.eks_k8s_version
+  upgrade_policy {
+    support_type = "STANDARD"
+  }
 
   // TODO - enabled cluster log types?
 
