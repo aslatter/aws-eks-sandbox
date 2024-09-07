@@ -21,5 +21,5 @@ variable "nginx_ingress_chart_version" {
 
 variable "karpenter_chart_version" {
   type    = string
-  default = "1.0.0"
+  default = "1.0.1"
 }
