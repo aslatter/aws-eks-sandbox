@@ -26,22 +26,22 @@ variable "aws_account_id" {
 
 variable "eks_k8s_version" {
   type    = string
-  default = "1.30"
+  default = "1.31"
 }
 
 variable "eks_vpc_cni_addon_version" {
   type    = string
-  default = "v1.18.3-eksbuild.2"
+  default = "v1.18.5-eksbuild.1"
 }
 
 variable "eks_csi_addon_version" {
   type    = string
-  default = "v1.33.0-eksbuild.1"
+  default = "v1.35.0-eksbuild.1"
 }
 
 variable "eks_pod_identity_addon_version" {
   type    = string
-  default = "v1.3.0-eksbuild.1"
+  default = "v1.3.2-eksbuild.2"
 }
 
 variable "cluster_az_count" {

@@ -6,20 +6,20 @@ variable "assume_role" {
 
 variable "k8s_metrics_chart_version" {
   type    = string
-  default = "3.12.1"
+  default = "3.12.2"
 }
 
 variable "lb_controller_chart_version" {
   type    = string
-  default = "1.8.2"
+  default = "1.9.1"
 }
 
 variable "nginx_ingress_chart_version" {
   type    = string
-  default = "4.11.2"
+  default = "4.11.3"
 }
 
 variable "karpenter_chart_version" {
   type    = string
-  default = "1.0.1"
+  default = "1.0.6"
 }
