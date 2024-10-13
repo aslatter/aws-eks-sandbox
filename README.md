@@ -181,3 +181,56 @@ spec:
             port:
               name: http
 ```
+
+# Upgrade Checklist
+
+We have a number of versioned components to track:
+
++ Kubernetes
+
+  Visit: https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html
+
++ VPC CNI Addon
+
+  ```
+  aws eks describe-addon-versions --region us-east-2 --kubernetes-version 1.31 --addon-name vpc-cni | jq '.addons[0].addonVersions[0].addonVersion'
+  ```
+
++ EBS CSI Addon (not currently in use)
+
+  ```
+  aws eks describe-addon-versions --region us-east-2 --kubernetes-version 1.31 --addon-name aws-ebs-csi-driver | jq '.addons[0].addonVersions[0].addonVersion'
+  ```
+
+
++ Pod Identity Addon
+
+  ```
+  aws eks describe-addon-versions --region us-east-2 --kubernetes-version 1.31 --addon-name eks-pod-identity-agent | jq '.addons[0].addonVersions[0].addonVersion'
+  ```
+
+
++ Kubernetes Metrics Helm Chart
+
+  Visit: https://github.com/kubernetes-sigs/metrics-server/releases
+
++ AWS Load Balancer Controller Helm Chart
+
+  Chart: https://artifacthub.io/packages/helm/aws/aws-load-balancer-controller
+  Chart: https://github.com/aws/eks-charts/blob/master/stable/aws-load-balancer-controller/Chart.yaml
+  Documentation: https://docs.aws.amazon.com/eks/latest/userguide/lbc-helm.html
+  Controller: https://github.com/kubernetes-sigs/aws-load-balancer-controller
+
+  Review release-notes in case CDRs need to be updated (upgrading the helm chart
+  will not upgrade CRDs).
+
++ NGINX Ingress Controller Helm Chart
+
+  Check releases here: https://github.com/kubernetes/ingress-nginx
+
++ Karpenter Helm Chart
+
+  Visit: https://github.com/aws/karpenter-provider-aws/tree/main/charts
+  Releases scope to v1+: https://github.com/aws/karpenter-provider-aws/releases?q=v1.&expanded=true
+
+  Review release-notes for CRD updates
