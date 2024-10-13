@@ -216,10 +216,10 @@ We have a number of versioned components to track:
 
 + AWS Load Balancer Controller Helm Chart
 
-  Chart: https://artifacthub.io/packages/helm/aws/aws-load-balancer-controller
-  Chart: https://github.com/aws/eks-charts/blob/master/stable/aws-load-balancer-controller/Chart.yaml
-  Documentation: https://docs.aws.amazon.com/eks/latest/userguide/lbc-helm.html
-  Controller: https://github.com/kubernetes-sigs/aws-load-balancer-controller
+  + Chart: https://artifacthub.io/packages/helm/aws/aws-load-balancer-controller
+  + Chart: https://github.com/aws/eks-charts/blob/master/stable/aws-load-balancer-controller/Chart.yaml
+  + Documentation: https://docs.aws.amazon.com/eks/latest/userguide/lbc-helm.html
+  + Controller: https://github.com/kubernetes-sigs/aws-load-balancer-controller
 
   Review release-notes in case CDRs need to be updated (upgrading the helm chart
   will not upgrade CRDs).
@@ -230,7 +230,7 @@ We have a number of versioned components to track:
 
 + Karpenter Helm Chart
 
-  Visit: https://github.com/aws/karpenter-provider-aws/tree/main/charts
-  Releases scope to v1+: https://github.com/aws/karpenter-provider-aws/releases?q=v1.&expanded=true
+  + Visit: https://github.com/aws/karpenter-provider-aws/tree/main/charts
+  + Releases scope to v1+: https://github.com/aws/karpenter-provider-aws/releases?q=v1.&expanded=true
 
   Review release-notes for CRD updates
