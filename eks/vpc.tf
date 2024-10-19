@@ -308,3 +308,7 @@ resource "aws_vpc_endpoint_route_table_association" "s3" {
   vpc_endpoint_id = aws_vpc_endpoint.s3.id
   route_table_id  = each.value
 }
+
+locals {
+  public_ips = aws_eip.nat[*].public_ip
+}

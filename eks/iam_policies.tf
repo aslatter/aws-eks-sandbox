@@ -133,7 +133,7 @@ data "aws_iam_policy_document" "karpenter" {
       "sqs:GetQueueUrl",
       "sqs:ReceiveMessage"
     ]
-    resources = [aws_sqs_queue.karpenter.arn]
+    resources = [aws_sqs_queue.queue["karpenterEvents"].arn]
   }
   statement {
     // PassNodeIAMRole (!!)

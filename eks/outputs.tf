@@ -64,11 +64,11 @@ output "vpc" {
 }
 
 output "queues" {
-  value = {
-    "karpenterEvents" : {
-      arn : aws_sqs_queue.karpenter.arn
-      id : aws_sqs_queue.karpenter.id
-      name : aws_sqs_queue.karpenter.name
+  value = { for key, queue in aws_sqs_queue.queue :
+    key => {
+      arn : queue.arn
+      id : queue.id
+      name : queue.name
     }
   }
 }
