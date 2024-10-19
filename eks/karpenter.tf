@@ -3,33 +3,50 @@
 
 //
 // event rules
+// https://karpenter.sh/docs/reference/cloudformation/#interruption-handling
 //
 
-// instance health events. This could give us warning about upcoming
-// maintenance events for specific EC2 instances.
-resource "aws_cloudwatch_event_rule" "karpenter_instance_health" {
+locals {
+  event_rules = {
+    "instanceHealth" : {
+      // https://docs.aws.amazon.com/health/latest/ug/aws-health-concepts-and-terms.html#aws-health-events
+      source      = ["aws.health"]
+      detail-type = ["AWS Health Event"]
+      target      = aws_sqs_queue.karpenter.arn
+    }
+    "spotInterruption" : {
+      // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-instance-termination-notices.html#ec2-spot-instance-interruption-warning-event
+      source      = ["aws.ec2"]
+      detail-type = ["EC2 Spot Instance Interruption Warning"]
+      target      = aws_sqs_queue.karpenter.arn
+    }
+    "spotRebalenceRecomendation" : {
+      // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/rebalance-recommendations.html
+      source      = ["aws.ec2"]
+      detail-type = ["EC2 Instance Rebalance Recommendation"]
+      target      = aws_sqs_queue.karpenter.arn
+    }
+    "instanceState" : {
+      // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-instance-state-changes.html
+      source      = ["aws.ec2"]
+      detail-type = ["EC2 Instance State-change Notification"]
+      target      = aws_sqs_queue.karpenter.arn
+    }
+  }
+}
+
+resource "aws_cloudwatch_event_rule" "karpenter" {
+  for_each = local.event_rules
   event_pattern = jsonencode({
-    source      = ["aws.health"]
-    detail-type = ["AWS Health Event"]
+    source      = each.value.source
+    detail-type = each.value.detail-type
   })
 }
 
-resource "aws_cloudwatch_event_target" "karpenter_instance_health" {
-  rule = aws_cloudwatch_event_rule.karpenter_instance_health.name
-  arn  = aws_sqs_queue.karpenter.arn
-}
-
-// subscribe to EC2 instance state-changes (start, stop, etc).
-resource "aws_cloudwatch_event_rule" "karpenter_instance_state" {
-  event_pattern = jsonencode({
-    source      = ["aws.ec2"]
-    detail-type = ["EC2 Instance State-change Notification"]
-  })
-}
-
-resource "aws_cloudwatch_event_target" "karpenter_instance_state" {
-  rule = aws_cloudwatch_event_rule.karpenter_instance_state.name
-  arn  = aws_sqs_queue.karpenter.arn
+resource "aws_cloudwatch_event_target" "karpenter" {
+  for_each = local.event_rules
+  rule     = aws_cloudwatch_event_rule.karpenter[each.key].name
+  arn      = each.value.target
 }
 
 //
@@ -62,10 +79,7 @@ data "aws_iam_policy_document" "karpenter_queue_policy" {
     condition {
       test     = "ArnEquals"
       variable = "aws:SourceArn"
-      values = [
-        aws_cloudwatch_event_rule.karpenter_instance_health.arn,
-        aws_cloudwatch_event_rule.karpenter_instance_state.arn,
-      ]
+      values   = [for event_rule in aws_cloudwatch_event_rule.karpenter : event_rule.arn]
     }
   }
   statement {
