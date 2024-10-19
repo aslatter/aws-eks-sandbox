@@ -58,6 +58,8 @@ locals {
   group_name   = data.terraform_remote_state.init.outputs.name
 }
 
+resource "time_static" "created" {}
+
 // We play some tricks to get all provisioned
 // resources into a single resource group, for easy
 // visibility into separate deployments within the
@@ -68,6 +70,7 @@ locals {
 
 resource "aws_resourcegroups_group" "group" {
   name = local.group_name
+  description = "Created ${replace(time_static.created.rfc3339,"/[^\\sa-zA-Z0-9_\\.-]/",".")}"
   resource_query {
     query = jsonencode({
       ResourceTypeFilters : [
@@ -84,7 +87,6 @@ resource "aws_resourcegroups_group" "group" {
 
   tags = {
     Name = "rg"
+    Created = time_static.created.rfc3339
   }
 }
-
-

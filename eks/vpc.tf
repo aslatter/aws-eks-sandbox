@@ -307,6 +307,12 @@ resource "aws_vpc_endpoint_route_table_association" "s3" {
 
   vpc_endpoint_id = aws_vpc_endpoint.s3.id
   route_table_id  = each.value
+
+  depends_on = [
+    // not a real dependency, but I want the resource
+    // group created early in the deployment.
+    aws_resourcegroups_group.group
+  ]
 }
 
 locals {
