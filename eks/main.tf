@@ -23,6 +23,21 @@ provider "aws" {
   }
 }
 
+provider "aws" {
+  alias               = "global"
+  region              = var.global_region
+  allowed_account_ids = [var.aws_account_id]
+  assume_role {
+    role_arn     = var.assume_role
+    session_name = "deploy"
+  }
+  default_tags {
+    tags = {
+      "group" = local.group_name
+    }
+  }
+}
+
 data "aws_partition" "current" {}
 
 // Find AZs to provision into
@@ -69,8 +84,8 @@ resource "time_static" "created" {}
 // but that was running into issues.
 
 resource "aws_resourcegroups_group" "group" {
-  name = local.group_name
-  description = "Created ${replace(time_static.created.rfc3339,"/[^\\sa-zA-Z0-9_\\.-]/",".")}"
+  name        = local.group_name
+  description = "Created ${replace(time_static.created.rfc3339, "/[^\\sa-zA-Z0-9_\\.-]/", ".")}"
   resource_query {
     query = jsonencode({
       ResourceTypeFilters : [
@@ -86,7 +101,36 @@ resource "aws_resourcegroups_group" "group" {
   }
 
   tags = {
-    Name = "rg"
+    Name    = "rg"
+    Created = time_static.created.rfc3339
+  }
+}
+
+// create a second resource group in the "global" region
+// to track any global resources we create. This doesn't get
+// everything (no IAM roles), but it's better than nothing.
+resource "aws_resourcegroups_group" "group_global" {
+  count = var.region == var.global_region ? 0 : 1
+  provider = aws.global
+
+  name        = local.group_name
+  description = "Created ${replace(time_static.created.rfc3339, "/[^\\sa-zA-Z0-9_\\.-]/", ".")}"
+  resource_query {
+    query = jsonencode({
+      ResourceTypeFilters : [
+        "AWS::AllSupported"
+      ],
+      TagFilters : [
+        {
+          Key : "group",
+          Values : [local.group_name]
+        }
+      ]
+    })
+  }
+
+  tags = {
+    Name    = "rg"
     Created = time_static.created.rfc3339
   }
 }

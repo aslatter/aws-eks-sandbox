@@ -3,6 +3,11 @@ variable "region" {
   type = string
 }
 
+variable "global_region" {
+  type    = string
+  default = "us-east-1"
+}
+
 variable "assume_role" {
   type        = string
   description = "IAM role to assume when calling AWS APIs"
