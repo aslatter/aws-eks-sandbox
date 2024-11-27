@@ -80,11 +80,18 @@ data "aws_iam_policy_document" "sqs_baseline_policy" {
     }
   }
   statement {
-    // this is dangerous, because this will also block control-plane
-    // actions.
+    // this is dangerous, because if applied wrongly we can lock ourselves
+    // out of managing the queue.
     sid     = "EnforceNetworkPerimeter"
     effect  = "Deny"
-    actions = ["sqs:*"]
+    // always allow control-plane access so we don't lock ourselves out.
+    actions = [
+      "sqs:DeleteMessage",
+      "sqs:PurgeQueue",
+      "sqs:ReceiveMessage",
+      "sqs:SendMessage",
+      "sqs:StartMessageMoveTask"
+      ]
     principals {
       type        = "*"
       identifiers = ["*"]
