@@ -155,7 +155,7 @@ resource "kubectl_manifest" "karpenter_node_pool" {
             {
               key : "karpenter.sh/capacity-type"
               operator : "In"
-              values : ["on-demand"]
+              values : ["spot", "on-demand"]
             },
             {
               key : "karpenter.k8s.aws/instance-family"
