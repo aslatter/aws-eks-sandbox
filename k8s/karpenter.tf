@@ -1,68 +1,11 @@
 
-resource "kubernetes_namespace" "karpenter" {
-  metadata {
-    name = "karpenter"
-  }
-}
-
-resource "helm_release" "karpenter" {
-  name      = "karpenter"
-  namespace = kubernetes_namespace.karpenter.metadata[0].name
-
-  repository = "oci://public.ecr.aws/karpenter"
-  chart      = "karpenter"
-  version    = var.karpenter_chart_version
-
-  values = [jsonencode({
-    // ClusterFirst doesn't work because karpenter is installed
-    // before CoreDNS.
-    dnsPolicy : "Default"
-
-    serviceAccount : {
-      name : "karpenter"
-      annotations : {
-        "eks.amazonaws.com/role-arn" : data.terraform_remote_state.eks.outputs.pod_roles.karpenter_karpenter.arn
-      }
-    }
-    settings : {
-      clusterName : local.cluster_name
-      interruptionQueue : data.terraform_remote_state.eks.outputs.queues.karpenterEvents.name
-    }
-    controller : {
-      env : [
-        {
-          // force a deployment re-roll on k8s versions change.
-          // fargate nodes don't get a new kubelet on their own, so
-          // we need to force it.
-          name : "X_K8S_VERSION"
-          value : local.cluster_version
-        }
-
-      ]
-      resources : {
-        requests : {
-          cpu : "0.5"
-          memory : "0.74G"
-        }
-        limits : {
-          cpu : "0.5"
-          memory : "0.74G"
-        }
-      }
-    }
-    webhook : {
-      // override to a port we already have open between control-plane and VPC
-      port : "9443"
-    }
-  })]
-}
-
 resource "kubectl_manifest" "karpenter_node_class" {
+  count = 0
   yaml_body = jsonencode({
     apiVersion : "karpenter.k8s.aws/v1"
     kind : "EC2NodeClass"
     metadata : {
-      name : "default"
+      name : "custom"
     }
     // https://karpenter.sh/v1.0/concepts/nodeclasses/
     // https://karpenter.sh/v1.0/tasks/managing-amis/
@@ -103,11 +46,10 @@ resource "kubectl_manifest" "karpenter_node_class" {
       }
     }
   })
-
-  depends_on = [helm_release.karpenter]
 }
 
 resource "kubectl_manifest" "karpenter_node_pool" {
+  count = 0
   yaml_body = jsonencode({
     apiVersion : "karpenter.sh/v1"
     kind : "NodePool"
@@ -178,7 +120,6 @@ resource "kubectl_manifest" "karpenter_node_pool" {
   })
 
   depends_on = [
-    helm_release.karpenter,
     kubectl_manifest.karpenter_node_pool,
   ]
 }

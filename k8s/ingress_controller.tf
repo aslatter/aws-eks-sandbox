@@ -41,8 +41,6 @@ resource "helm_release" "ingress_controller" {
       replicaCount : 2
     }
   })]
-
-  depends_on = [kubectl_manifest.karpenter_node_pool]
 }
 
 
@@ -58,8 +56,6 @@ resource "kubectl_manifest" "ingress_controller_http_tgb" {
     }
     spec : jsondecode(null_resource.ingress_controller_http_tgb.triggers.spec)
   })
-
-  depends_on = [helm_release.lb_controller]
 
   lifecycle {
     replace_triggered_by = [null_resource.ingress_controller_http_tgb]

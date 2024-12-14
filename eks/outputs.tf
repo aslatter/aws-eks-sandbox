@@ -62,13 +62,3 @@ output "vpc" {
     nlb_dns_name : aws_lb.nlb.dns_name
   }
 }
-
-output "queues" {
-  value = { for key, queue in aws_sqs_queue.queue :
-    key => {
-      arn : queue.arn
-      id : queue.id
-      name : queue.name
-    }
-  }
-}
