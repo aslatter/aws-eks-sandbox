@@ -145,10 +145,15 @@ resource "aws_iam_role_policy_attachment" "eks" {
 // Add-ons
 //
 
-resource "aws_eks_addon" "vpc-cni" {
+data "aws_eks_addon_version" "vpc_cni" {
+  addon_name = "vpc-cni"
+  kubernetes_version = aws_eks_cluster.main.version
+}
+
+resource "aws_eks_addon" "vpc_cni" {
   cluster_name  = aws_eks_cluster.main.name
   addon_name    = "vpc-cni"
-  addon_version = var.eks_vpc_cni_addon_version
+  addon_version = data.aws_eks_addon_version.vpc_cni.version
 
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
@@ -160,10 +165,15 @@ resource "aws_eks_addon" "vpc-cni" {
   })
 }
 
-resource "aws_eks_addon" "eks-pod-identity-agent" {
+data "aws_eks_addon_version" "eks_pod_identity_agent" {
+  addon_name = "eks-pod-identity-agent"
+  kubernetes_version = aws_eks_cluster.main.version
+}
+
+resource "aws_eks_addon" "eks_pod_identity_agent" {
   cluster_name  = aws_eks_cluster.main.name
   addon_name    = "eks-pod-identity-agent"
-  addon_version = var.eks_pod_identity_addon_version
+  addon_version = data.aws_eks_addon_version.eks_pod_identity_agent.version
 }
 
 # resource "aws_eks_addon" "csi" {

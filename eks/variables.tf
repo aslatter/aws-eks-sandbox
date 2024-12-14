@@ -34,19 +34,9 @@ variable "eks_k8s_version" {
   default = "1.31"
 }
 
-variable "eks_vpc_cni_addon_version" {
-  type    = string
-  default = "v1.18.5-eksbuild.1"
-}
-
 variable "eks_csi_addon_version" {
   type    = string
   default = "v1.35.0-eksbuild.1"
-}
-
-variable "eks_pod_identity_addon_version" {
-  type    = string
-  default = "v1.3.2-eksbuild.2"
 }
 
 variable "cluster_az_count" {
