@@ -160,6 +160,7 @@ resource "aws_eks_addon" "vpc_cni" {
 
   configuration_values = jsonencode({
     env : {
+      AWS_VPC_K8S_CNI_EXTERNALSNAT : "true"
       ENABLE_PREFIX_DELEGATION : "true"
     }
   })
