@@ -4,6 +4,10 @@ set -eu
 
 # clean up ec2 instance terraform doesn't know about
 
+if ! terraform -chdir=eks output -json info; then
+    exit 0
+fi
+
 REGION=$(terraform -chdir=eks output -json info | jq -r .region)
 DEPLOYMENT_ID=$(terraform -chdir=eks output -json info | jq -r .resourceGroup.name)
 
