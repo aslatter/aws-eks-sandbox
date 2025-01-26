@@ -22,9 +22,7 @@ resource "helm_release" "lb_controller" {
 
     // we don't plan on having the controller actually provision
     // AWS resources, but just in case we should tag them.
-    defaultTags : {
-      group : local.group_name
-    }
+    defaultTags : local.default_tags
 
     // configure SA for pod identity
     serviceAccount : {

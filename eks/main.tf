@@ -17,9 +17,7 @@ provider "aws" {
     session_name = "deploy"
   }
   default_tags {
-    tags = {
-      "group" = local.group_name
-    }
+    tags = local.default_tags
   }
 }
 
@@ -32,9 +30,7 @@ provider "aws" {
     session_name = "deploy"
   }
   default_tags {
-    tags = {
-      "group" = local.group_name
-    }
+    tags = local.default_tags
   }
 }
 
@@ -71,6 +67,7 @@ locals {
   entropy      = data.terraform_remote_state.init.outputs.entropy
   cluster_name = data.terraform_remote_state.init.outputs.name
   group_name   = data.terraform_remote_state.init.outputs.name
+  default_tags = data.terraform_remote_state.init.outputs.default_tags
 }
 
 resource "time_static" "created" {}

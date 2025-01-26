@@ -93,9 +93,7 @@ resource "kubectl_manifest" "karpenter_node_class" {
       ]
       instanceProfile : data.terraform_remote_state.eks.outputs.instance_profiles.node.name
 
-      tags : {
-        group : local.group_name
-      }
+      tags : local.default_tags
 
       metadataOptions : {
         httpTokens : "required"

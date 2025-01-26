@@ -109,11 +109,6 @@ resource "aws_eks_node_group" "main" {
 
   // update config
 
-  tags = {
-    Name : each.value.name
-    "group" = local.group_name
-  }
-
   lifecycle {
     create_before_destroy = true
   }
