@@ -270,6 +270,8 @@ resource "aws_lb_target_group" "nlb_http" {
 
   tags = {
     Name : "nlb-tg-http"
+    // https://github.com/aws/containers-roadmap/issues/2508#issuecomment-2607535010
+    "eks:eks-cluster-name" : local.cluster_name
   }
 
   lifecycle {

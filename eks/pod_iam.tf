@@ -5,38 +5,7 @@ locals {
   // map of k8s service-accounts and the IAM policies we
   // would like to grant them access to.
   eks_pod_role_assignments = {
-    cni : {
-      namespace : "kube-system"
-      serviceAccount : "aws-node"
-      policyArns : {
-        "cni" : "${local.iam_role_policy_prefix}/AmazonEKS_CNI_Policy"
-        "restrict_eni_access" : aws_iam_policy.restrict_eni_access.arn
-      }
-    }
-    lb_controler : {
-      namespace : "kube-system"
-      serviceAccount : "aws-lb-controller"
-      policyArns : {
-        lb_controler : aws_iam_policy.lb_controler.arn
-      }
-    }
-    csi : {
-      namespace : "kube-system"
-      serviceAccount : "ebs-csi-controller-sa"
-      policyArns : {
-        "csi_policy" : "${local.iam_role_policy_prefix}/service-role/AmazonEBSCSIDriverPolicy"
-      }
-    }
-    karpenter : {
-      namespace : "karpenter"
-      serviceAccount : "karpenter"
-      // karpenter runs on Fargate which doesn't support pod identity
-      // https://github.com/aws/containers-roadmap/issues/2274
-      useLegacyIRSA : true
-      policyArns : {
-        karpenter : aws_iam_policy.karpenter.arn
-      }
-    }
+
   }
 }
 

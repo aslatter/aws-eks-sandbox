@@ -34,6 +34,8 @@ locals {
   cluster_version           = data.terraform_remote_state.eks.outputs.eks.version
   default_tags              = data.terraform_remote_state.init.outputs.default_tags
   nlb_target_group_http_arn = data.terraform_remote_state.eks.outputs.vpc.nlb_target_group_http_arn
+  node_role_name            = data.terraform_remote_state.eks.outputs.roles.node.name
+  node_role_path            = data.terraform_remote_state.eks.outputs.roles.node.path
 }
 
 locals {
