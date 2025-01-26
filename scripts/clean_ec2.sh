@@ -16,6 +16,7 @@ DEPLOYMENT_ID=$(terraform -chdir=eks output -json info | jq -r .resourceGroup.na
 INSTANCE_IDS=$(aws ec2 describe-instances \
     --region "$REGION" \
     --filters "Name=tag:group,Values=$DEPLOYMENT_ID" \
+    --filters "Name=operator.managed,Values=false" \
     --query "Reservations[*].Instances[*].InstanceId" \
     --output text)
 
