@@ -25,224 +25,34 @@ resource "aws_iam_policy" "restrict_eni_access" {
   policy = data.aws_iam_policy_document.restrict_eni_access.json
 }
 
-// This is the policy we attach to the role used by the AWS
-// Load Balancer Controller.
-//
-// https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json
-//
-// This is extremely cut-down from the above policy, as we only
-// wish to use the lb-controller to register back-ends with an existing
-// NLB (as opposed to completely manage NLBs and ALBs on our behalf).
-//
-// Evaluating/creating a policy that would allow creating load-balancers
-// from a principle running in the cluster seems like it would be hard.
-data "aws_iam_policy_document" "lb_controler" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ec2:DescribeAccountAttributes",
-      "ec2:DescribeAddresses",
-      "ec2:DescribeAvailabilityZones",
-      "ec2:DescribeInternetGateways",
-      "ec2:DescribeVpcs",
-      "ec2:DescribeVpcPeeringConnections",
-      "ec2:DescribeSubnets",
-      "ec2:DescribeSecurityGroups",
-      "ec2:DescribeInstances",
-      "ec2:DescribeNetworkInterfaces",
-      "ec2:DescribeTags",
-      "ec2:GetCoipPoolUsage",
-      "ec2:DescribeCoipPools",
-      "elasticloadbalancing:DescribeLoadBalancers",
-      "elasticloadbalancing:DescribeLoadBalancerAttributes",
-      "elasticloadbalancing:DescribeListeners",
-      "elasticloadbalancing:DescribeListenerCertificates",
-      "elasticloadbalancing:DescribeSSLPolicies",
-      "elasticloadbalancing:DescribeRules",
-      "elasticloadbalancing:DescribeTargetGroups",
-      "elasticloadbalancing:DescribeTargetGroupAttributes",
-      "elasticloadbalancing:DescribeTargetHealth",
-      "elasticloadbalancing:DescribeTags"
+resource "aws_iam_policy" "allow_eks_auto_mode_tags" {
+  name = "allow_eks_auto_mode_tags-${local.entropy}"
+  path = "/deployment/"
+  policy = jsonencode({
+    Version: "2012-10-17",
+    Statement: [
+       {
+            Sid: "Compute",
+            Effect: "Allow",
+            Action: [
+                "ec2:CreateFleet",
+                "ec2:RunInstances",
+                "ec2:CreateLaunchTemplate"
+            ],
+            Resource: "*",
+            Condition: {
+                StringEquals: {
+                    "aws:RequestTag/eks:eks-cluster-name": "$${aws:PrincipalTag/eks:eks-cluster-name}"
+                },
+                StringLike: {
+                    "aws:RequestTag/eks:kubernetes-node-class-name": "*",
+                    "aws:RequestTag/eks:kubernetes-node-pool-name": "*"
+                }
+            }
+        }
     ]
-    resources = ["*"]
-  }
-  statement {
-    effect = "Allow"
-    actions = [
-      "elasticloadbalancing:RegisterTargets",
-      "elasticloadbalancing:DeregisterTargets"
-    ]
-    resources = ["*"]
-  }
+  })
 }
-
-resource "aws_iam_policy" "lb_controler" {
-  name   = "lb_controler-${local.entropy}"
-  path   = "/deployment/"
-  policy = data.aws_iam_policy_document.lb_controler.json
-}
-
-// Policy attached to the Karpenter pod-role.
-// https://karpenter.sh/docs/getting-started/migrating-from-cas/
-// https://karpenter.sh/docs/reference/cloudformation/#karpentercontrollerpolicy
-data "aws_iam_policy_document" "karpenter" {
-  statement {
-    // Karpenter
-    effect = "Allow"
-    // TODO - can some of these be scoped?
-    // i.e. we can probably scope 'run instance' and
-    // 'tag instance' to the appropriate subnets.
-    actions = [
-      "ssm:GetParameter",
-      "ec2:DescribeImages",
-      "ec2:RunInstances",
-      "ec2:DescribeSubnets",
-      "ec2:DescribeSecurityGroups",
-      "ec2:DescribeLaunchTemplates",
-      "ec2:DescribeInstances",
-      "ec2:DescribeInstanceTypes",
-      "ec2:DescribeInstanceTypeOfferings",
-      "ec2:DescribeAvailabilityZones",
-      "ec2:DeleteLaunchTemplate",
-      "ec2:CreateTags",
-      "ec2:CreateLaunchTemplate",
-      // who deletes these?
-      "ec2:CreateFleet",
-      "ec2:DescribeSpotPriceHistory",
-      "pricing:GetProducts"
-    ]
-    resources = ["*"]
-  }
-  statement {
-    // ConditionalEC2Termination
-    effect    = "Allow"
-    actions   = ["ec2:TerminateInstances"]
-    resources = ["*"]
-    // this condition is not meaningful because karpenter can tag any ec2 instance
-    condition {
-      test     = "StringLike"
-      variable = "ec2:ResourceTag/karpenter.sh/nodepool"
-      values   = ["*"]
-    }
-  }
-  statement {
-    // Interruption queue access
-    effect = "Allow"
-    actions = [
-      "sqs:DeleteMessage",
-      "sqs:GetQueueUrl",
-      "sqs:ReceiveMessage"
-    ]
-    resources = [aws_sqs_queue.queue["karpenterEvents"].arn]
-  }
-  statement {
-    // PassNodeIAMRole (!!)
-    effect    = "Allow"
-    actions   = ["iam:PassRole"]
-    resources = [aws_iam_role.node.arn]
-  }
-  statement {
-    // EKSClusterEndpointLookup
-    effect    = "Allow"
-    actions   = ["eks:DescribeCluster"]
-    resources = [aws_eks_cluster.main.arn]
-  }
-  statement {
-    // AllowScopedInstanceProfileCreationActions
-    effect    = "Allow"
-    actions   = ["iam:CreateInstanceProfile"]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
-      values   = ["owned"]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/topology.kubernetes.io/region"
-      values   = [var.region]
-    }
-    condition {
-      test     = "StringLike"
-      variable = "aws:RequestTag/karpenter.k8s.aws/ec2nodeclass"
-      values   = ["*"]
-    }
-  }
-  statement {
-    // AllowScopedInstanceProfileTagActions
-    effect    = "Allow"
-    actions   = ["iam:TagInstanceProfile"]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
-      values   = ["owned"]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/topology.kubernetes.io/region"
-      values   = [var.region]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
-      values   = ["owned"]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/topology.kubernetes.io/region"
-      values   = [var.region]
-    }
-    condition {
-      test     = "StringLike"
-      variable = "aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass"
-      values   = ["*"]
-    }
-    condition {
-      test     = "StringLike"
-      variable = "aws:RequestTag/karpenter.k8s.aws/ec2nodeclass"
-      values   = ["*"]
-    }
-  }
-  statement {
-    // AllowScopedInstanceProfileActions
-    effect = "Allow"
-    actions = [
-      "iam:AddRoleToInstanceProfile",
-      "iam:RemoveRoleFromInstanceProfile",
-      "iam:DeleteInstanceProfile",
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/kubernetes.io/cluster/${aws_eks_cluster.main.name}"
-      values   = ["owned"]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/topology.kubernetes.io/region"
-      values   = [var.region]
-    }
-    condition {
-      test     = "StringLike"
-      variable = "aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass"
-      values   = ["*"]
-    }
-  }
-  statement {
-    // AllowInstanceProfileReadActions
-    effect    = "Allow"
-    actions   = ["iam:GetInstanceProfile"]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_policy" "karpenter" {
-  name   = "karpenter-${local.entropy}"
-  path   = "/deployment/"
-  policy = data.aws_iam_policy_document.karpenter.json
-}
-
 //
 // Node Role
 //
@@ -284,17 +94,12 @@ resource "aws_iam_role" "node" {
 resource "aws_iam_role_policy_attachment" "node" {
   for_each = toset([
     // required EKS policies
-    "AmazonEKSWorkerNodePolicy",
+    "AmazonEKSWorkerNodePolicy", // non-auto-mode
+    "AmazonEKSWorkerNodeMinimalPolicy", // auto-mode
     "AmazonEC2ContainerRegistryReadOnly",
     "AmazonSSMManagedInstanceCore",
   ])
 
   policy_arn = "${local.iam_role_policy_prefix}/${each.value}"
   role       = aws_iam_role.node.name
-}
-
-resource "aws_iam_instance_profile" "node" {
-  name_prefix = "eks_node-"
-  path        = "/deployment/"
-  role        = aws_iam_role.node.name
 }

@@ -1,82 +1,30 @@
 
-resource "kubernetes_namespace" "karpenter" {
-  metadata {
-    name = "karpenter"
-  }
-}
-
-resource "helm_release" "karpenter" {
-  name      = "karpenter"
-  namespace = kubernetes_namespace.karpenter.metadata[0].name
-
-  repository = "oci://public.ecr.aws/karpenter"
-  chart      = "karpenter"
-  version    = var.karpenter_chart_version
-
-  values = [jsonencode({
-    // ClusterFirst doesn't work because karpenter is installed
-    // before CoreDNS.
-    dnsPolicy : "Default"
-
-    serviceAccount : {
-      name : "karpenter"
-      annotations : {
-        "eks.amazonaws.com/role-arn" : data.terraform_remote_state.eks.outputs.pod_roles.karpenter_karpenter.arn
-      }
-    }
-    settings : {
-      clusterName : local.cluster_name
-      interruptionQueue : data.terraform_remote_state.eks.outputs.queues.karpenterEvents.name
-    }
-    controller : {
-      env : [
-        {
-          // force a deployment re-roll on k8s versions change.
-          // fargate nodes don't get a new kubelet on their own, so
-          // we need to force it.
-          name : "X_K8S_VERSION"
-          value : local.cluster_version
-        }
-
-      ]
-      resources : {
-        requests : {
-          cpu : "0.5"
-          memory : "0.74G"
-        }
-        limits : {
-          cpu : "0.5"
-          memory : "0.74G"
-        }
-      }
-    }
-    webhook : {
-      // override to a port we already have open between control-plane and VPC
-      port : "9443"
-    }
-  })]
-}
-
-resource "kubectl_manifest" "karpenter_node_class" {
+resource "kubectl_manifest" "auto_mode_node_class" {
+  // by default, auto-mode tries to place nodes into the subnets
+  // that we've provisioned the EKS-control-plane NICs onto. This
+  // isn't appropriate for our networking setup so we need our own
+  // node-class.
   yaml_body = jsonencode({
-    apiVersion : "karpenter.k8s.aws/v1"
-    kind : "EC2NodeClass"
+    apiVersion : "eks.amazonaws.com/v1"
+    kind : "NodeClass"
     metadata : {
-      name : "default"
+      name : "general"
     }
-    // https://karpenter.sh/v1.0/concepts/nodeclasses/
-    // https://karpenter.sh/v1.0/tasks/managing-amis/
     spec : {
-      // lots of good stuff here to customize kubelet params that we're not using
-      amiFamily : "AL2023"
-      amiSelectorTerms : [
-        {
-          alias : "al2023@latest"
-        }
-      ]
-      kubelet : {
-        maxPods : 98
+      ephemeralStorage : {
+        iops : 3000
+        size : "80Gi"
+        throughput : 125
       }
+
+      networkPolicy : "DefaultAllow"
+      networkPolicyEventLogs : "Disabled"
+      role : "${trimprefix(local.node_role_path, "/")}${local.node_role_name}"
+
+      // we're already behind a NAT-gateway - we don't need an additional layer
+      // of SNAT.
+      snatPolicy : "Disabled"
+
       subnetSelectorTerms : [
         {
           tags : {
@@ -91,55 +39,50 @@ resource "kubectl_manifest" "karpenter_node_class" {
           }
         }
       ]
-      instanceProfile : data.terraform_remote_state.eks.outputs.instance_profiles.node.name
 
       tags : local.default_tags
-
-      metadataOptions : {
-        httpTokens : "required"
-        httpPutResponseHopLimit : 1
-      }
     }
   })
-
-  depends_on = [helm_release.karpenter]
 }
 
-resource "kubectl_manifest" "karpenter_node_pool" {
+resource "kubectl_manifest" "auto_mode_node_pool" {
   yaml_body = jsonencode({
     apiVersion : "karpenter.sh/v1"
     kind : "NodePool"
     metadata : {
-      name : "default"
+      name : "custom"
     }
-    // https://karpenter.sh/v1.0/concepts/nodepools/
     spec : {
-      limits : {
-        cpu : 24
-      }
       disruption : {
-        // https://karpenter.sh/v1.0/concepts/disruption/
+        budgets : [{ nodes : "10%" }]
+        consolidateAfter : "30s"
         consolidationPolicy : "WhenEmptyOrUnderutilized"
-        consolidateAfter : "5m"
       }
       template : {
-        metadata : {
-          // tags and annotations for new nodes in this pool
-        }
+        metadata : {}
         spec : {
+          expireAfter : "336h"
           nodeClassRef : {
-            group : "karpenter.k8s.aws" // what is this?
-            kind : "EC2NodeClass"       // what is this?
-            name : "default"
+            group : "eks.amazonaws.com"
+            kind : "NodeClass"
+            name : "general"
           }
-
-          taints : []
-          startupTaints : []
-
-          expireAfter : "336h" // 14 days
-          terminationGracePeriod : "24h"
-
           requirements : [
+            {
+              key : "karpenter.sh/capacity-type"
+              operator : "In"
+              values : ["spot", "on-demand"]
+            },
+            {
+              key : "eks.amazonaws.com/instance-category"
+              operator : "In",
+              values : ["c", "m", "r"]
+            },
+            {
+              key : "eks.amazonaws.com/instance-generation"
+              operator : "Gt"
+              values : ["4"]
+            },
             {
               key : "kubernetes.io/arch"
               operator : "In"
@@ -149,34 +92,17 @@ resource "kubectl_manifest" "karpenter_node_pool" {
               key : "kubernetes.io/os"
               operator : "In"
               values : ["linux"]
-            },
-            {
-              key : "karpenter.sh/capacity-type"
-              operator : "In"
-              values : ["spot", "on-demand"]
-            },
-            {
-              key : "karpenter.k8s.aws/instance-family"
-              operator : "In"
-              // https://aws.amazon.com/ec2/instance-types/
-              // these instance-types are not appropriate for prod
-              values : ["t3a", "t3"]
-              // something like this for prod:
-              // values : ["m7a", "m7i", "m6a", "m6i", "m5a", "m5", "r7a", "r7i", "r6a", "r6i", "r5a", "r5"]
-            },
-            {
-              key : "karpenter.k8s.aws/instance-size"
-              operator : "NotIn"
-              values : ["nano", "micro"]
             }
           ]
+          terminationGracePeriod : "24h0m0s"
         }
       }
+      limits : {
+        cpu : 8
+      }
+      weight : 10
     }
   })
 
-  depends_on = [
-    helm_release.karpenter,
-    kubectl_manifest.karpenter_node_pool,
-  ]
+  depends_on = [kubectl_manifest.auto_mode_node_class]
 }

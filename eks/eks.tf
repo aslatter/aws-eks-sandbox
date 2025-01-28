@@ -3,8 +3,27 @@ resource "aws_eks_cluster" "main" {
   name     = local.cluster_name
   role_arn = aws_iam_role.eks.arn
   version  = var.eks_k8s_version
+
+  bootstrap_self_managed_addons = false
+
   upgrade_policy {
     support_type = "STANDARD"
+  }
+
+  compute_config {
+    enabled = true
+  }
+
+  kubernetes_network_config {
+    elastic_load_balancing {
+      enabled = true
+    }
+  }
+
+  storage_config {
+    block_storage {
+      enabled = true
+    }
   }
 
   // TODO - enabled cluster log types?
@@ -65,19 +84,31 @@ locals {
   )
 }
 
+// allow our nodes to talk to the control-plane (auto-mode)
+resource "aws_eks_access_entry" "node" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node.arn
+  type          = "EC2"
+}
+
+// allow our nodes to talk to the control-plane (auto-mode)
+resource "aws_eks_access_policy_association" "node" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node.arn
+  policy_arn    = "arn:${data.aws_partition.current.partition}:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy"
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.node]
+}
+
 // I would have expected this to have been set up for use,
 // at least for the principal which created the cluster?
 resource "aws_eks_access_entry" "main" {
   for_each      = toset(local.cluster_admin_access_role_arns)
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = each.value
-}
-
-// allow our nodes to talk to the control-plane
-resource "aws_eks_access_entry" "node" {
-  cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.node.arn
-  type          = "EC2_LINUX"
 }
 
 resource "aws_eks_access_policy_association" "main" {
@@ -98,8 +129,11 @@ resource "aws_eks_access_policy_association" "main" {
 
 data "aws_iam_policy_document" "eks_assume_role_policy" {
   statement {
-    sid     = "EKSClusterAssumeRole"
-    actions = ["sts:AssumeRole"]
+    sid = "EKSClusterAssumeRole"
+    actions = [
+      "sts:AssumeRole",
+      "sts:TagSession"
+    ]
 
     principals {
       type        = "Service"
@@ -132,66 +166,15 @@ resource "aws_iam_role_policy_attachment" "eks" {
   // it would be nice to somehow scope this to just the ECS/VPC resources associated
   // with this cluster? Maybe?
   for_each = {
-    AmazonEKSClusterPolicy         = "${local.iam_role_policy_prefix}/AmazonEKSClusterPolicy",
-    AmazonEKSVPCResourceController = "${local.iam_role_policy_prefix}/AmazonEKSVPCResourceController",
-    restrict_eni_access            = aws_iam_policy.restrict_eni_access.arn,
+    AmazonEKSComputePolicy       = "${local.iam_role_policy_prefix}/AmazonEKSComputePolicy",
+    AmazonEKSBlockStoragePolicy  = "${local.iam_role_policy_prefix}/AmazonEKSBlockStoragePolicy",
+    AmazonEKSLoadBalancingPolicy = "${local.iam_role_policy_prefix}/AmazonEKSLoadBalancingPolicy",
+    AmazonEKSNetworkingPolicy    = "${local.iam_role_policy_prefix}/AmazonEKSNetworkingPolicy",
+    AmazonEKSClusterPolicy       = "${local.iam_role_policy_prefix}/AmazonEKSClusterPolicy",
+    restrict_eni_access          = aws_iam_policy.restrict_eni_access.arn,
+    allow_eks_auto_mode_tags     = aws_iam_policy.allow_eks_auto_mode_tags.arn,
   }
 
   policy_arn = each.value
   role       = aws_iam_role.eks.name
 }
-
-//
-// Add-ons
-//
-
-data "aws_eks_addon_version" "vpc_cni" {
-  addon_name = "vpc-cni"
-  kubernetes_version = aws_eks_cluster.main.version
-}
-
-resource "aws_eks_addon" "vpc_cni" {
-  cluster_name  = aws_eks_cluster.main.name
-  addon_name    = "vpc-cni"
-  addon_version = data.aws_eks_addon_version.vpc_cni.version
-
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
-
-  configuration_values = jsonencode({
-    env : {
-      AWS_VPC_K8S_CNI_EXTERNALSNAT : "true"
-      ENABLE_PREFIX_DELEGATION : "true"
-    }
-  })
-}
-
-data "aws_eks_addon_version" "eks_pod_identity_agent" {
-  addon_name = "eks-pod-identity-agent"
-  kubernetes_version = aws_eks_cluster.main.version
-}
-
-resource "aws_eks_addon" "eks_pod_identity_agent" {
-  cluster_name  = aws_eks_cluster.main.name
-  addon_name    = "eks-pod-identity-agent"
-  addon_version = data.aws_eks_addon_version.eks_pod_identity_agent.version
-}
-
-# resource "aws_eks_addon" "csi" {
-#   cluster_name  = aws_eks_cluster.main.name
-#   addon_name    = "aws-ebs-csi-driver"
-#   addon_version = var.eks_csi_addon_version
-
-#   configuration_values = jsonencode({
-#     controller : {
-#       extraVolumeTags : data.aws_default_tags.tags.tags
-#     }
-#   })
-
-#   depends_on = [
-#     // internally, AWS applies a helm-chart with a deployment
-#     // and waits for it to become ready, which can't happen
-#     // until after we have nodes so we may as well wait for that.
-#     aws_eks_node_group.main,
-#   ]
-# }

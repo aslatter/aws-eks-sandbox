@@ -39,15 +39,7 @@ output "roles" {
     "node" : {
       arn : aws_iam_role.node.arn
       name : aws_iam_role.node.name
-    }
-  }
-}
-
-output "instance_profiles" {
-  value = {
-    node : {
-      arn : aws_iam_instance_profile.node.arn
-      name : aws_iam_instance_profile.node.name
+      path : aws_iam_role.node.path
     }
   }
 }
@@ -60,15 +52,5 @@ output "vpc" {
     nlb_security_group_id : aws_security_group.nlb.id
     nlb_target_group_http_arn : aws_lb_target_group.nlb_http.arn
     nlb_dns_name : aws_lb.nlb.dns_name
-  }
-}
-
-output "queues" {
-  value = { for key, queue in aws_sqs_queue.queue :
-    key => {
-      arn : queue.arn
-      id : queue.id
-      name : queue.name
-    }
   }
 }

@@ -5,6 +5,7 @@ resource "kubernetes_namespace" "ingress_controller" {
     labels = {
       // https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.1/deploy/pod_readiness_gate/
       "elbv2.k8s.aws/pod-readiness-gate-inject" : "enabled"
+      "eks.amazonaws.com/pod-readiness-gate-inject" : "enabled"
     }
   }
 }
@@ -41,8 +42,6 @@ resource "helm_release" "ingress_controller" {
       replicaCount : 2
     }
   })]
-
-  depends_on = [kubectl_manifest.karpenter_node_pool]
 }
 
 
@@ -50,7 +49,7 @@ resource "helm_release" "ingress_controller" {
 // the back-end of our load-balancer.
 resource "kubectl_manifest" "ingress_controller_http_tgb" {
   yaml_body = jsonencode({
-    apiVersion : "elbv2.k8s.aws/v1beta1"
+    apiVersion : "eks.amazonaws.com/v1"
     kind : "TargetGroupBinding"
     metadata : {
       name : "ingress-controller-http"
@@ -58,8 +57,6 @@ resource "kubectl_manifest" "ingress_controller_http_tgb" {
     }
     spec : jsondecode(null_resource.ingress_controller_http_tgb.triggers.spec)
   })
-
-  depends_on = [helm_release.lb_controller]
 
   lifecycle {
     replace_triggered_by = [null_resource.ingress_controller_http_tgb]
