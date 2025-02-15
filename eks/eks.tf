@@ -41,6 +41,17 @@ resource "aws_eks_cluster" "main" {
   }
 }
 
+// we bake the k8s major-version into our fargate deployments to
+// force them to re-roll to take the new k8s version. but if
+// we re-roll them too quickly they come up on the old version.
+resource "time_sleep" "eks_cluster_version" {
+  create_duration = "2m"
+
+  triggers = {
+    version = aws_eks_cluster.main.version
+  }
+}
+
 //
 // IAM Cluster Auth
 //
