@@ -5,6 +5,15 @@ resource "kubernetes_namespace" "karpenter" {
   }
 }
 
+resource "helm_release" "karpenter_crd" {
+  name      = "karpenter-crd"
+  namespace = kubernetes_namespace.karpenter.metadata[0].name
+
+  repository = "oci://public.ecr.aws/karpenter"
+  chart      = "karpenter-crd"
+  version    = var.karpenter_chart_version
+}
+
 resource "helm_release" "karpenter" {
   name      = "karpenter"
   namespace = kubernetes_namespace.karpenter.metadata[0].name
@@ -12,6 +21,8 @@ resource "helm_release" "karpenter" {
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
   version    = var.karpenter_chart_version
+
+  skip_crds = true
 
   values = [jsonencode({
     // ClusterFirst doesn't work because karpenter is installed
@@ -55,6 +66,8 @@ resource "helm_release" "karpenter" {
       port : "9443"
     }
   })]
+
+  depends_on = [helm_release.karpenter_crd]
 }
 
 resource "kubectl_manifest" "karpenter_node_class" {
