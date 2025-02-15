@@ -31,7 +31,7 @@ variable "aws_account_id" {
 
 variable "eks_k8s_version" {
   type    = string
-  default = "1.31"
+  default = "1.32"
 }
 
 variable "eks_csi_addon_version" {

@@ -11,15 +11,15 @@ variable "k8s_metrics_chart_version" {
 
 variable "lb_controller_chart_version" {
   type    = string
-  default = "1.9.1"
+  default = "1.11.0"
 }
 
 variable "nginx_ingress_chart_version" {
   type    = string
-  default = "4.11.3"
+  default = "4.12.0"
 }
 
 variable "karpenter_chart_version" {
   type    = string
-  default = "1.0.6"
+  default = "1.2.1"
 }
