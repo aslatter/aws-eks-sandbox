@@ -8,29 +8,6 @@ locals {
       name : "karpenter"
       // most old events are useless
       message_retention_seconds : 300
-      // event bridge uses resource-policies to access SQS, so we need
-      // to add this in.
-      queue_policy = jsonencode({
-        Version : "2012-10-17"
-        Statement : [
-          {
-            # Sid : "AllowEventAccess"
-            Effect : "Allow"
-            Resource : "*"
-            Principal : {
-              Service : [
-                "events.amazonaws.com"
-              ]
-            }
-            Action : "sqs:SendMessage"
-            Condition : {
-              ArnEquals : {
-                "aws:SourceArn" : [for event_rule in aws_cloudwatch_event_rule.karpenter : event_rule.arn]
-              }
-            }
-          }
-        ]
-      })
     }
   }
 }
@@ -45,16 +22,15 @@ resource "aws_sqs_queue" "queue" {
 resource "aws_sqs_queue_policy" "queue" {
   for_each  = local.queues
   queue_url = aws_sqs_queue.queue[each.key].id
-  policy    = data.aws_iam_policy_document.queue_policy[each.key].json
-}
-
-data "aws_iam_policy_document" "queue_policy" {
-  for_each                = local.queues
-  source_policy_documents = concat([data.aws_iam_policy_document.sqs_baseline_policy.json], try(each.value, "queue_policy", null) != null ? [each.value.queue_policy] : [])
+  // TODO - allow merging in custom queue-policy for integrations that
+  // can't use identity policies.
+  policy = data.aws_iam_policy_document.sqs_baseline_policy.json
 }
 
 // Baseline resource-policy we attach to every queue.
 // Adapted from: https://github.com/aws-samples/data-perimeter-policy-examples/blob/main/resource_based_policies/sqs_queue_policy.json
+//
+// We could adapt from the example RCPs here: https://github.com/aws-samples/data-perimeter-policy-examples/tree/main/resource_control_policies
 data "aws_iam_policy_document" "sqs_baseline_policy" {
   statement {
     sid     = "EnforceIdentityPerimeter"
@@ -74,6 +50,7 @@ data "aws_iam_policy_document" "sqs_baseline_policy" {
     }
     condition {
       // allow from AWS services
+      // TODO - add confused-deputy-guard for aws-services?
       test     = "BoolIfExists"
       variable = "aws:PrincipalIsAWSService"
       values   = ["false"]
@@ -82,8 +59,8 @@ data "aws_iam_policy_document" "sqs_baseline_policy" {
   statement {
     // this is dangerous, because if applied wrongly we can lock ourselves
     // out of managing the queue.
-    sid     = "EnforceNetworkPerimeter"
-    effect  = "Deny"
+    sid    = "EnforceNetworkPerimeter"
+    effect = "Deny"
     // always allow control-plane access so we don't lock ourselves out.
     actions = [
       "sqs:DeleteMessage",
@@ -91,7 +68,7 @@ data "aws_iam_policy_document" "sqs_baseline_policy" {
       "sqs:ReceiveMessage",
       "sqs:SendMessage",
       "sqs:StartMessageMoveTask"
-      ]
+    ]
     principals {
       type        = "*"
       identifiers = ["*"]
@@ -104,6 +81,20 @@ data "aws_iam_policy_document" "sqs_baseline_policy" {
       test     = "NotIpAddressIfExists"
       variable = "aws:SourceIp"
       values   = concat(var.public_access_cidrs, local.public_ips)
+    }
+    condition {
+      // allow principals to flag themselves as exempt from network
+      // restrictions
+      //
+      // This is only safe if we're using an RCP which prevents folks allowed
+      // to tag role-sessions from blowing in this tag.
+      //
+      // I'm not really sure I like this - maybe the creator of the
+      // queue could flag specific principals which are allowed through
+      // the network perimeter?
+      test     = "StringNotEqualsIfExists"
+      variable = "aws:PrincipalTag/dp:exclude:network"
+      values   = ["true"]
     }
     condition {
       // allow AWS services
