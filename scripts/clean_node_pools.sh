@@ -29,6 +29,3 @@ if ! just -q kubeconfig; then
 fi
 
 kubectl delete --all nodepools.karpenter.sh || exit 0
-
-REGION=$(terraform -chdir=eks output -json info | jq -r .region)
-DEPLOYMENT_ID=$(terraform -chdir=eks output -json info | jq -r .resourceGroup.name)
