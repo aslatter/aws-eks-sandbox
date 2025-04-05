@@ -27,16 +27,15 @@ of this repo. By default, none of the provisioned resources
 admit traffic from the public internet.
 
 Variables you'll need to modify:
-* `assume_role` - ARN of IAM Roles to assume when calling AWS
-  APIs (including the Kubernetes API endpoint).
-* `aws_account_id` - the account you wish to create the cluster
-  in.
-* `public_access_cidrs` - IPv4 addresses to allow access from.
-  This applies to both the Kubernetes API endpoint as well as
-  the load-balancer in front of the cluster.
-* `public_access_cidrs_ipv6` - similar to `public_access_cidrs`
-  except for IPv6 addresses (note that the Kubernetes API endpoint
-  only accepts IPv4 traffic).
+
+* `region` - AWS region
+* `assume_role` - IAM role ARN to assume when calling AWS APIs
+* `iam_permission_boundary` - IAM policy ARN to apply to created roles
+* `aws_account_id` - AWS account id to apply changes to
+* `public_access_cidrs` - list of IPv4 CIDRs to allow access to various resources
+
+The Terraform provider authenticates against AWS APIs using the
+current AWS-config-profile (and then assumes the role above).
 
 The *justfile* coordinates the deployment steps:
 
@@ -49,16 +48,20 @@ The *justfile* coordinates the deployment steps:
 I haven't put too much though into the structure of the
 various terraform outputs, sorry.
 
-This is not a "production ready" EKS deployment, as the "public
-access" variables control access to both the front-end load-balancer
-and the EKS control-plane. Also I have done very little testing
-& tuning - this repo was created as a learning exercise.
+This repo is constructed as a learning exercise and to learn how
+to provision things on AWS and is not intended to be "production
+ready".
 
-# What's missing
+Noted deficiencies:
 
-* TLS (edge or in-cluster)
-* Node-local DNS
-* Node OS-image upgrading
+* I don't really install workloads into the cluster when I test
+  upgrades
+* The ingress-controller does not update CRDs
+* There's no CSI controller installed
+* The same IP-allwo-list is applied to both the front-end
+  load-balancer as the k8s API server and other resources
+* No in-cluster TLS
+* No workload observability
 
 # Structure
 
@@ -189,26 +192,6 @@ We have a number of versioned components to track:
 + Kubernetes
 
   Visit: https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html
-
-+ VPC CNI Addon
-
-  ```
-  aws eks describe-addon-versions --region us-east-2 --kubernetes-version 1.31 --addon-name vpc-cni | jq '.addons[0].addonVersions[0].addonVersion'
-  ```
-
-+ EBS CSI Addon (not currently in use)
-
-  ```
-  aws eks describe-addon-versions --region us-east-2 --kubernetes-version 1.31 --addon-name aws-ebs-csi-driver | jq '.addons[0].addonVersions[0].addonVersion'
-  ```
-
-
-+ Pod Identity Addon
-
-  ```
-  aws eks describe-addon-versions --region us-east-2 --kubernetes-version 1.31 --addon-name eks-pod-identity-agent | jq '.addons[0].addonVersions[0].addonVersion'
-  ```
-
 
 + Kubernetes Metrics Helm Chart
 
