@@ -16,10 +16,10 @@ variable "lb_controller_chart_version" {
 
 variable "nginx_ingress_chart_version" {
   type    = string
-  default = "4.12.0"
+  default = "4.12.1"
 }
 
 variable "karpenter_chart_version" {
   type    = string
-  default = "1.2.1"
+  default = "1.3.2"
 }
