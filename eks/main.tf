@@ -107,7 +107,7 @@ resource "aws_resourcegroups_group" "group" {
 // to track any global resources we create. This doesn't get
 // everything (no IAM roles), but it's better than nothing.
 resource "aws_resourcegroups_group" "group_global" {
-  count = var.region == var.global_region ? 0 : 1
+  count    = var.region == var.global_region ? 0 : 1
   provider = aws.global
 
   name        = local.group_name

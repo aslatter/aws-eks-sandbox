@@ -163,7 +163,7 @@ resource "aws_iam_role_policy_attachment" "eks" {
 //
 
 data "aws_eks_addon_version" "vpc_cni" {
-  addon_name = "vpc-cni"
+  addon_name         = "vpc-cni"
   kubernetes_version = aws_eks_cluster.main.version
 }
 
@@ -184,7 +184,7 @@ resource "aws_eks_addon" "vpc_cni" {
 }
 
 data "aws_eks_addon_version" "eks_pod_identity_agent" {
-  addon_name = "eks-pod-identity-agent"
+  addon_name         = "eks-pod-identity-agent"
   kubernetes_version = aws_eks_cluster.main.version
 }
 
