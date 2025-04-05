@@ -116,6 +116,12 @@ data "aws_iam_policy_document" "eks_assume_role_policy" {
       type        = "Service"
       identifiers = ["eks.amazonaws.com"]
     }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [var.aws_account_id]
+    }
   }
 }
 
