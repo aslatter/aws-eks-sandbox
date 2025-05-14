@@ -3,6 +3,9 @@
 // install the AWS load-balancer ingress-controller
 // we won't actually use it as an ingress, but we will
 // use its CRDs to link services to existing NLBs.
+//
+// NOTE: there's no CRD helm-chart, so those need
+// to be upgraded by a separate process.
 resource "helm_release" "lb_controller" {
   name      = "aws-load-balancer-controller"
   namespace = "kube-system"
