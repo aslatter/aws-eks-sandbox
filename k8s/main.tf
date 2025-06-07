@@ -34,6 +34,7 @@ locals {
   cluster_version           = data.terraform_remote_state.eks.outputs.eks.version
   default_tags              = data.terraform_remote_state.init.outputs.default_tags
   nlb_target_group_http_arn = data.terraform_remote_state.eks.outputs.vpc.nlb_target_group_http_arn
+  nodes_security_group_id   = data.terraform_remote_state.eks.outputs.vpc.nodes_security_group_id
 }
 
 locals {

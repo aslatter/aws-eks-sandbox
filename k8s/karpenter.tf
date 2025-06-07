@@ -5,6 +5,34 @@ resource "kubernetes_namespace" "karpenter" {
   }
 }
 
+// assign security-group to Karpenter pods
+// (this only works for Fargate pods without additional
+// configuration).
+// We do this so that the metrics-server has access to
+// the kubelet port for scraping metrics.
+resource "kubectl_manifest" "karpenter_sg_policy" {
+  yaml_body = yamlencode({
+    apiVersion : "vpcresources.k8s.aws/v1beta1"
+    kind : "SecurityGroupPolicy"
+    metadata : {
+      name : "karpenter-sg-policy"
+      namespace : "karpenter"
+    }
+    spec : {
+      podSelector : {
+        matchLabels : {
+          "app.kubernetes.io/name" : "karpenter"
+        }
+      }
+      securityGroups : {
+        groupIds : [
+          local.nodes_security_group_id
+        ]
+      }
+    }
+  })
+}
+
 resource "helm_release" "karpenter_crd" {
   name      = "karpenter-crd"
   namespace = kubernetes_namespace.karpenter.metadata[0].name
@@ -67,7 +95,10 @@ resource "helm_release" "karpenter" {
     }
   })]
 
-  depends_on = [helm_release.karpenter_crd]
+  depends_on = [
+    helm_release.karpenter_crd,
+    kubectl_manifest.karpenter_sg_policy,
+  ]
 }
 
 resource "kubectl_manifest" "karpenter_node_class" {
