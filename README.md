@@ -193,6 +193,27 @@ We have a number of versioned components to track:
 
   Visit: https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html
 
+get Kubernetes versions:
+
+```
+aws --region us-east-2 eks describe-cluster-versions --version-status STANDARD_SUPPORT \
+  | jq -r '.clusterVersions[] | .clusterVersion' \
+  | sort -V
+```
+
+get recommended addon versions:
+
+```
+K8S_VERSION="1.33"
+for ADDON in vpc-cni eks-pod-identity-agent; do
+  printf '%s:\t' "${ADDON}"
+  aws --region us-east-2 eks describe-addon-versions \
+    --kubernetes-version "${K8S_VERSION}" \
+    --addon-name "${ADDON}" \
+    | jq -r '.addons[0].addonVersions[] | select(.compatibilities[0].defaultVersion == true) | .addonVersion'
+done
+```
+
 + Kubernetes Metrics Helm Chart
 
   Visit: https://github.com/kubernetes-sigs/metrics-server/releases
