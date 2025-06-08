@@ -19,11 +19,9 @@ resource "kubectl_manifest" "karpenter_sg_policy" {
       namespace : "karpenter"
     }
     spec : {
-      podSelector : {
-        matchLabels : {
-          "app.kubernetes.io/name" : "karpenter"
-        }
-      }
+      // an empty pod-selector matches the entire namespace,
+      // which matches the selector on our fargate profile.
+      podSelector : {}
       securityGroups : {
         groupIds : [
           local.nodes_security_group_id
