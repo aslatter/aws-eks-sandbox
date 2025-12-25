@@ -85,8 +85,7 @@ resource "aws_route" "public_internet_gateway" {
 // have a route to a NAT-gateway for internet egress.
 //
 // we have as many subnets as we wish to have AZs for
-// our k8s nodes. We also provision a separate NAT
-// gateway per AZ.
+// our k8s nodes.
 resource "aws_subnet" "private" {
   count = var.node_az_count
 
@@ -103,18 +102,17 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_route_table" "private" {
-  count = var.node_az_count
 
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name : "rtb-private-${local.azs[count.index]}"
+    Name : "rtb-private"
   }
 }
 
 resource "aws_route_table_association" "private" {
   count          = length(aws_subnet.private)
-  route_table_id = aws_route_table.private[count.index].id
+  route_table_id = aws_route_table.private.id
   subnet_id      = aws_subnet.private[count.index].id
 }
 
@@ -181,25 +179,28 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "main" {
-  count = var.node_az_count
+  vpc_id            = aws_vpc.main.id
+  availability_mode = "regional"
 
-  // we assign IPv4 addresses to the ngw per AZ.
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  dynamic "availability_zone_address" {
+    for_each = aws_eip.nat
+    content {
+      allocation_ids    = [availability_zone_address.value.id]
+      availability_zone = local.azs[availability_zone_address.key]
+    }
+  }
 
   tags = {
-    Name : "nat-gateway-${local.azs[count.index]}"
+    Name : "nat-gateway"
   }
 }
 
-// add route to each of our private-subnet route-tables for internet
+// add route to our private-subnet route-tables for internet
 // egress.
 resource "aws_route" "private_nat_gateway" {
-  count = var.node_az_count
-
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.main[count.index].id
+  nat_gateway_id         = aws_nat_gateway.main.id
 
   // again the community module use a 5m create-timeout here?
 }
@@ -297,8 +298,8 @@ resource "aws_vpc_endpoint_route_table_association" "s3" {
     {
       public : aws_route_table.public.id
     },
-    { for k, v in aws_route_table.private :
-      "private-${k}" => v.id
+    {
+      private : aws_route_table.private.id
     },
     {
       intra : aws_route_table.intra.id
