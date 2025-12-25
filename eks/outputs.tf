@@ -2,8 +2,7 @@
 output "info" {
   value = {
     resourceGroup = {
-      name = aws_resourcegroups_group.group.name
-      id   = aws_resourcegroups_group.group.arn
+      name = local.group_name
     }
 
     region = var.region

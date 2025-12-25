@@ -19,7 +19,6 @@ clean-init: clean-eks
 
 clean-eks: clean-k8s
     terraform -chdir=eks state rm "aws_resourcegroups_group.group" || true
-    terraform -chdir=eks state rm "aws_resourcegroups_group.group_global[0]" || true
     terraform -chdir=eks destroy -var-file=../terraform.tfvars -compact-warnings
 
 clean-k8s:
