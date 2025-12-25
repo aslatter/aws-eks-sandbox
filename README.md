@@ -56,7 +56,7 @@ Noted deficiencies:
 
 * I don't really install workloads into the cluster when I test
   upgrades
-* The ingress-controller does not update CRDs
+* The gateway-controller does not update CRDs
 * There's no CSI controller installed
 * The same IP-allwo-list is applied to both the front-end
   load-balancer as the k8s API server and other resources
@@ -103,9 +103,10 @@ This project deploys a Network Load Balancer, and a target-group
 which port-80 on this load-balancer is redirected to. The ARN for
 this target-group is an output of the 'eks' project.
 
-We then install nginx-ingress into the cluster, and tell the AWS
-Load Balancer Controller to use the nginx-controller as the back-end
-for the load-balancer on port 80.
+We then install the Envoy Gateway Controller into the cluster, and
+tell the AWS Load Balancer Controller to use the nginx-controller
+as the back-end for the load-balancer on port 80. The name of the
+gateway is `"eg"`, within the default namespace.
 
 To test out the connection:
 
@@ -126,63 +127,83 @@ safe.
 The following demo app should be publicly reachable:
 
 ```yaml
----
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: hello-node
-  labels:
-    app: hello-node
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: hello-node
-  template:
-    metadata:
-      labels:
-        app: hello-node
-    spec:
-      containers:
-      - name: hello-node
-        image: registry.k8s.io/e2e-test-images/agnhost:2.39
-        ports:
-          - name: http
-            containerPort: 8080
-        command: ["/agnhost", "netexec", "--http-port=8080"]
+  name: backend
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: hello-node
+  name: backend
   labels:
-    app: hello-node
+    app: backend
+    service: backend
 spec:
-  selector:
-    app: hello-node
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: http
+    - name: http
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: backend
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: hello-node
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: backend
 spec:
-  ingressClassName: nginx
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: v1
+    spec:
+      serviceAccountName: backend
+      containers:
+        - image: gcr.io/k8s-staging-gateway-api/echo-basic:v20231214-v1.0.0-140-gf544a46e
+          imagePullPolicy: IfNotPresent
+          name: backend
+          ports:
+            - containerPort: 3000
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: backend
+spec:
+  parentRefs:
+    - name: eg
   rules:
-  - http:
-      paths:
-      - path: /testpath
-        pathType: Prefix
-        backend:
-          service:
-            name: hello-node
-            port:
-              name: http
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: backend
+          port: 3000
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /echo
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: ""
 ```
 
 # Upgrade Checklist
@@ -228,9 +249,11 @@ done
   Review release-notes in case CDRs need to be updated (upgrading the helm chart
   will not upgrade CRDs).
 
-+ NGINX Ingress Controller Helm Chart
++ Envoy Gateway Controller
 
-  Check releases here: https://github.com/kubernetes/ingress-nginx
+  Releases: https://github.com/envoyproxy/gateway/releases
+
+  CRD-upgrades are not automated or handled at all in this repo.
 
 + Karpenter Helm Chart
 

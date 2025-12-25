@@ -14,9 +14,9 @@ variable "lb_controller_chart_version" {
   default = "1.14.0"
 }
 
-variable "nginx_ingress_chart_version" {
-  type    = string
-  default = "4.13.3"
+variable "envoy_gateway_chart_version" {
+  type = string
+  default = "1.6.1"
 }
 
 variable "karpenter_chart_version" {
