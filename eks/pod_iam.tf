@@ -161,13 +161,8 @@ locals {
   eks_oidc_issuer_name = replace(local.eks_oidc_issuer, "https://", "")
 }
 
-data "tls_certificate" "eks_oidc_issuer" {
-  url = local.eks_oidc_issuer
-}
-
 // register cluster oidc endpoint with IAM
 resource "aws_iam_openid_connect_provider" "eks_irsa" {
   url             = local.eks_oidc_issuer
-  thumbprint_list = [data.tls_certificate.eks_oidc_issuer.certificates[0].sha1_fingerprint]
   client_id_list  = ["sts.amazonaws.com"]
 }
