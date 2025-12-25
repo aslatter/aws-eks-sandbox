@@ -64,6 +64,9 @@ resource "helm_release" "karpenter" {
     settings : {
       clusterName : local.cluster_name
       interruptionQueue : data.terraform_remote_state.eks.outputs.queues.karpenterEvents.name
+      featureGates : {
+        nodeRepair : true
+      }
     }
     controller : {
       env : [
