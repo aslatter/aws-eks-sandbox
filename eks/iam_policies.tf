@@ -232,7 +232,7 @@ data "aws_iam_policy_document" "karpenter" {
   statement {
     // AllowInstanceProfileReadActions
     effect    = "Allow"
-    actions   = ["iam:GetInstanceProfile"]
+    actions   = ["iam:GetInstanceProfile", "iam:ListInstanceProfiles"]
     resources = ["*"]
   }
 }
